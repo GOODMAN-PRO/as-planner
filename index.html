@@ -120,7 +120,7 @@ function defaults() {
       { id: 'math', name: 'Maths', color: '#f59e0b' },
     ],
     blocks: STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })),
-    seeded: true,
+    seeded: 2,
     tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
     exams: [],    // {id,title,subjectId,date}
     sessions: [], // {date,subjectId,mins}
@@ -131,6 +131,8 @@ function defaults() {
 }
 // starter study plan (Mon=1 … Sun=0): weekday evenings 16:30 & 19:30, weekend 90-min slots. Edit/delete freely.
 const STARTER_PLAN = [
+  { id: 'sch1', title: 'School', subjectId: '', kind: 'school', days: [1, 2, 3, 4, 5], start: '07:30', end: '15:20', place: '' },
+  { id: 'sch2', title: 'Travel home', subjectId: '', kind: 'other', days: [1, 2, 3, 4, 5], start: '15:20', end: '16:00', place: '' },
       { id: 'st1', title: '', subjectId: 'math', kind: 'study', days: [1, 3], start: '16:30', end: '17:30', place: '' },
       { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
       { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
@@ -171,10 +173,12 @@ function load() {
         .map(([k, v]) => [k, { score: Number.isFinite(v.score) ? Math.min(100, Math.max(0, Math.round(v.score))) : null, at: YMD.test(v.at) ? v.at : todayISO() }])),
       focus: { work: num(d.focus?.work, D0.focus.work, 180), rest: num(d.focus?.rest, D0.focus.rest, 60) },
       timer: { ...D0.timer, ...(d.timer && typeof d.timer === 'object' ? d.timer : {}) },
-      seeded: !!d.seeded,
+      seeded: d.seeded === true ? 1 : Math.max(0, +d.seeded || 0),
     };
-    // migration: installs from before the starter plan existed get it once (only if the timetable is still empty)
-    if (!out.seeded) { if (!out.blocks.length) out.blocks = STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })); out.seeded = true; }
+    // migrations of the starter plan (seeded = plan version already applied)
+    if (out.seeded < 1 && !out.blocks.length) out.blocks = STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })); // v1: study plan on empty timetables
+    if (out.seeded < 2) { const have = new Set(out.blocks.map(b => b.id)); out.blocks.push(...STARTER_PLAN.filter(b => b.id.startsWith('sch') && !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); } // v2: school + travel blocks
+    out.seeded = 2;
     const T = out.timer;
     T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
     T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
@@ -264,7 +268,7 @@ function taskRow(t) {
 }
 function blockRow(b, cur, past) {
   const label = b.title || sname(b.subjectId) || KIND[b.kind] || 'Block';
-  const meta = [KIND[b.kind], b.subjectId && b.title ? sname(b.subjectId) : '', b.place].filter(Boolean).map(esc).join(' · ');
+  const meta = [KIND[b.kind] !== label ? KIND[b.kind] : '', b.subjectId && b.title ? sname(b.subjectId) : '', b.place].filter(Boolean).map(esc).join(' · ');
   const pid = paperOf(b);
   return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}">
     <span class="bar" style="background:${scol(b.subjectId)}"></span>
@@ -645,7 +649,7 @@ const A = {
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
-  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = true; save(); render(); toast('Starter plan loaded — edit anything'); },
+  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 2; save(); render(); toast('Starter plan loaded — edit anything'); },
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
