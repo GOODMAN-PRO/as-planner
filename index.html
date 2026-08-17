@@ -28,7 +28,7 @@ h3{font-size:1.05rem;margin-bottom:4px}
 .mut{color:var(--mut);font-size:.85rem}
 .right{text-align:right;white-space:nowrap}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;min-height:44px}
-.btn{background:var(--acc);color:#fff;border-radius:10px;padding:0 16px;font-weight:600;white-space:nowrap}
+.btn{background:var(--acc);color:#fff;border-radius:10px;padding:0 16px;font-weight:600;white-space:nowrap;min-height:44px}
 .btn.ghost{background:var(--raise)}
 .btn.danger{background:#3b0d0d;color:#fca5a5}
 input,select,textarea{font:inherit;color:inherit;background:#0d0d14;border:1px solid var(--bd);border-radius:8px;padding:10px;width:100%;font-size:16px;min-height:44px}
@@ -72,9 +72,9 @@ details summary{cursor:pointer;color:var(--mut);font-size:.85rem;padding:8px 0;l
 .prow{display:flex;align-items:center;gap:4px;padding:3px 0}
 .prow>.mut{width:44px;flex:none;font-size:.72rem}
 .card.pgrid{padding:8px 10px}
-.pcell{flex:none;width:36px;height:36px;min-height:36px;border-radius:8px;background:var(--raise);color:var(--tx);font-size:.8rem;font-variant-numeric:tabular-nums;line-height:1;display:grid;place-items:center;padding:0}
+.pcell{flex:0 1 36px;min-width:28px;height:36px;min-height:36px;border-radius:8px;background:var(--raise);color:var(--tx);font-size:.8rem;font-variant-numeric:tabular-nums;line-height:1;display:grid;place-items:center;padding:0}
 .pcell.done{background:#14532d;color:#bbf7d0}
-.pcell small{font-size:.55rem;opacity:.85}
+.pcell small{font-size:.65rem;opacity:.85}
 .pcell:focus-visible{outline:2px solid var(--acc)}
 a{color:#c4b5fd}
 button:disabled,input:disabled{opacity:.5;cursor:default}
@@ -154,7 +154,7 @@ function load() {
       sessions: arr(d.sessions).filter(x => x && YMD.test(x.date)).map(x => ({ date: x.date, subjectId: sid(x.subjectId), mins: num(x.mins, 0, 6000) })),
       papers: Object.fromEntries(Object.entries(d.papers && typeof d.papers === 'object' ? d.papers : {})
         .filter(([k, v]) => /^\d{4}_[msw]\d{2}_qp_\d{2}$/.test(k) && v && typeof v === 'object')
-        .map(([k, v]) => [k, { score: Number.isFinite(+v.score) && v.score !== null && v.score !== '' ? Math.min(100, Math.max(0, Math.round(+v.score))) : null, at: YMD.test(v.at) ? v.at : todayISO() }])),
+        .map(([k, v]) => [k, { score: Number.isFinite(v.score) ? Math.min(100, Math.max(0, Math.round(v.score))) : null, at: YMD.test(v.at) ? v.at : todayISO() }])),
       focus: { work: num(d.focus?.work, D0.focus.work, 180), rest: num(d.focus?.rest, D0.focus.rest, 60) },
       timer: { ...D0.timer, ...(d.timer && typeof d.timer === 'object' ? d.timer : {}) },
     };
@@ -221,7 +221,7 @@ function render() {
   if (!VIEWS[view]) view = 'today';
   document.getElementById('view').innerHTML = VIEWS[view]();
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.v === view); b.toggleAttribute('aria-current', b.dataset.v === view); });
-  document.querySelector('.chip.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  const y = scrollY; document.querySelector('.chip.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); scrollTo(0, y); // nudge the chip strip only, never the page
 }
 window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'today'; render(); });
 
@@ -579,10 +579,14 @@ const A = {
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
-    const md = papersMarkdown();
     if (!Object.keys(S.papers).length) return toast('No papers logged yet');
+    const md = papersMarkdown();
     try { await navigator.clipboard.writeText(md); toast('Log copied as Markdown'); }
-    catch { prompt('Copy this:', md); }
+    catch { // no clipboard (http, some webviews): show it in a textarea to copy by hand
+      const t = Object.assign(document.createElement('textarea'), { value: md, readOnly: true, style: 'width:100%;height:40vh;font-family:ui-monospace,monospace;font-size:13px' });
+      const b = Object.assign(document.createElement('button'), { className: 'btn', textContent: 'Close', style: 'margin-top:10px;width:100%', onclick: () => dlg.close() });
+      dlg.replaceChildren(t, b); dlg.showModal(); t.select();
+    }
   },
   timerToggle: () => {
     const T = S.timer;
