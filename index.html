@@ -66,8 +66,8 @@ dialog::backdrop{background:#000a}
 details summary{cursor:pointer;color:var(--mut);font-size:.85rem;padding:8px 0;list-style:none}
 #toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:#26263a;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;opacity:0;transition:.2s;pointer-events:none;z-index:9;max-width:90vw}
 #toast.show{opacity:1;transform:translateX(-50%)}
-.hd{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.hd h1{flex:1}
+.hd{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:6px}
+.hd h1{flex:1 1 auto;white-space:nowrap}
 .num{width:80px}
 .seg{display:flex;background:var(--raise);border-radius:10px;padding:3px}
 .seg button{min-height:34px;padding:0 12px;border-radius:8px;font-size:.85rem;color:var(--mut)}
@@ -161,7 +161,7 @@ function load() {
       schema_version: VER,
       subjects,
       blocks: arr(d.blocks).filter(b => b && isId(b.id) && Array.isArray(b.days) && HM.test(b.start) && HM.test(b.end))
-        .map(b => ({ id: b.id, title: str(b.title) ? b.title : '', subjectId: sid(b.subjectId), kind: KIND[b.kind] !== undefined ? b.kind : 'other', days: b.days.map(Number).filter(n => n >= 0 && n <= 6), start: b.start, end: b.end, place: str(b.place) ? b.place : '' })),
+        .map(b => ({ id: b.id, title: str(b.title) ? b.title : '', subjectId: sid(b.subjectId), kind: Object.hasOwn(KIND, b.kind) ? b.kind : 'other', days: b.days.map(Number).filter(n => n >= 0 && n <= 6), start: b.start, end: b.end, place: str(b.place) ? b.place : '' })),
       tasks: arr(d.tasks).filter(t => t && isId(t.id) && str(t.title) && YMD.test(t.due))
         .map(t => ({ id: t.id, title: t.title, subjectId: sid(t.subjectId), due: t.due, mins: num(t.mins, 0, 6000), done: !!t.done, doneAt: str(t.doneAt) ? t.doneAt : null, paperId: /^\d{4}_[msw]\d{2}_qp_\d{2}$/.test(t.paperId) ? t.paperId : '' })),
       exams: arr(d.exams).filter(x => x && isId(x.id) && str(x.title) && YMD.test(x.date)).map(x => ({ id: x.id, title: x.title, subjectId: sid(x.subjectId), date: x.date })),
@@ -234,8 +234,11 @@ S = load();
 // ---------- routing / render ----------
 let view = location.hash.slice(1) || 'today';
 const VIEWS = { today: vToday, week: vWeek, tasks: vTasks, focus: vFocus, papers: vPapers, more: vMore };
+let curDay = todayISO();
 function render() {
-  if (!VIEWS[view]) view = 'today';
+  const t = todayISO();
+  if (t !== curDay) { curDay = t; wDay = new Date().getDay(); calSel = t; calY = +t.slice(0, 4); calM = +t.slice(5, 7) - 1; } // midnight rollover
+  if (!Object.hasOwn(VIEWS, view)) view = 'today';
   document.getElementById('view').innerHTML = VIEWS[view]();
   document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.v === view); b.toggleAttribute('aria-current', b.dataset.v === view); });
   const y = scrollY; document.querySelector('.chip.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); scrollTo(0, y); // nudge the chip strip only, never the page
@@ -244,7 +247,7 @@ window.addEventListener('hashchange', () => { view = location.hash.slice(1) || '
 
 // ---------- shared pieces ----------
 // a task "is" a past paper if it was created from the Papers tab (paperId) or its title contains a code like 9701_s23_qp_12 / 9701 s23 12
-const PAPER_RE = /\b(9701|9702|9618|9709)[ _-]?([msw]\d{2})[ _-]?(?:qp[ _-]?)?(\d{2})\b/i;
+const PAPER_RE = /\b(9701|9702|9618|9709)[ _-]?([msw]\d{2})(?!\d)[ _-]?(?:qp[ _-]?)?(\d{2})\b/i;
 function paperOf(t) {
   if (t.paperId) return t.paperId;
   const m = PAPER_RE.exec(t.title || '');
@@ -262,11 +265,13 @@ function taskRow(t) {
 function blockRow(b, cur, past) {
   const label = b.title || sname(b.subjectId) || KIND[b.kind] || 'Block';
   const meta = [KIND[b.kind], b.subjectId && b.title ? sname(b.subjectId) : '', b.place].filter(Boolean).map(esc).join(' · ');
-  return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}" data-a="editBlock" data-id="${b.id}" role="button" tabindex="0">
+  const pid = paperOf(b);
+  return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}">
     <span class="bar" style="background:${scol(b.subjectId)}"></span>
-    <div class="grow"><div>${esc(label)} ${cur ? '<span class="tag now">now</span>' : ''}</div>${meta ? `<div class="mut">${meta}</div>` : ''}</div>
-    ${paperOf(b) ? `<a class="btn ghost plink" href="${PP_HOST}${paperOf(b)}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${paperOf(b)}">📄</a>` : ''}
-    <div class="mut right">${b.start}<br>${b.end}</div></div>`;
+    <div class="grow row" data-a="editBlock" data-id="${b.id}" role="button" tabindex="0" style="cursor:pointer;align-self:stretch">
+      <div class="grow"><div>${esc(label)} ${cur ? '<span class="tag now">now</span>' : ''}</div>${meta ? `<div class="mut">${meta}</div>` : ''}</div>
+      <div class="mut right">${b.start}<br>${b.end}</div></div>
+    ${pid ? `<a class="btn ghost plink" href="${PP_HOST}${pid}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${pid}">📄</a>` : ''}</div>`;
 }
 const byStart = (a, b) => toMin(a.start) - toMin(b.start);
 
@@ -440,6 +445,7 @@ const PP = {
 };
 const SER = { m: 'Mar', s: 'Jun', w: 'Nov' };
 const ppId = (code, ser, yy, comp, v) => `${code}_${ser}${yy}_qp_${comp}${v}`;
+const ppKnown = id => { const [code, sy, , cv] = id.split('_'), P = Object.values(PP).find(p => p.code === code); return !!P && !!P.comps[+cv[0]] && P.vars(+cv[0], sy[0], +sy.slice(1)).includes(+cv.slice(1)) && PP_YEARS.includes(+sy.slice(1)); };
 const ppList = (P, comp) => PP_YEARS.flatMap(yy => ['w', 's', 'm'].flatMap(ser => P.vars(comp, ser, yy).map(v => ({ id: ppId(P.code, ser, yy, comp, v), ser, yy, v }))));
 let pSub = 'chem', ppShowA2 = false;
 function vPapers() {
@@ -633,7 +639,9 @@ const A = {
   addTask: () => taskDlg(), editTask: el => taskDlg(S.tasks.find(t => t.id === el.dataset.id)),
   addExam: () => examDlg(), editExam: el => examDlg(S.exams.find(x => x.id === el.dataset.id)),
   addSubject: () => subjectDlg(), editSubject: el => subjectDlg(S.subjects.find(s => s.id === el.dataset.id)),
-  toggleTask: el => { const t = S.tasks.find(t => t.id === el.dataset.id); t.done = !t.done; t.doneAt = t.done ? new Date().toISOString() : null; const pid = paperOf(t); if (t.done && pid && !S.papers[pid]) S.papers[pid] = { score: null, at: todayISO() }; save(); render(); },
+  toggleTask: el => { const t = S.tasks.find(t => t.id === el.dataset.id); t.done = !t.done; t.doneAt = t.done ? new Date().toISOString() : null; const pid = paperOf(t);
+    if (pid && ppKnown(pid)) { if (t.done) { if (!S.papers[pid]) S.papers[pid] = { score: null, at: todayISO() }; } else if (S.papers[pid]?.score === null && !S.tasks.some(o => o.done && paperOf(o) === pid)) delete S.papers[pid]; }
+    save(); render(); },
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
@@ -704,7 +712,7 @@ document.addEventListener('change', e => {
 });
 document.getElementById('view').addEventListener('toggle', e => { if (e.target.tagName === 'DETAILS') doneOpen = e.target.open; }, true);
 // keep "now" marker + due labels fresh
-setInterval(() => { if (view === 'today' && !dlg.open) render(); }, 60000);
+setInterval(() => { if ((view === 'today' || view === 'week') && !dlg.open) render(); }, 60000);
 syncTimer(); // resume/finish a timer that was running when the page was closed
 render();
 

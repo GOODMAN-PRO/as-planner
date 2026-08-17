@@ -1,6 +1,15 @@
 # AS Planner
 
-Offline-first PWA for managing AS-level time: weekly timetable (school / tutoring / study blocks), tasks with due dates, focus timer that logs minutes per subject, exam countdowns. All data lives in `localStorage` on the device.
+Offline-first PWA for managing AS-level time. **Live: https://goodman-pro.github.io/as-planner/**
+
+- **Today** — schedule with *now* marker + free gaps, due-soon tasks, focus minutes, next exam
+- **Calendar** — Week (recurring timetable: school / tutoring / study blocks; starter study plan seeded) and Month (dots for tasks due + exams; tap a day)
+- **Tasks** — homework / past papers with due dates; paper tasks get an **📄 Open** button (PDF)
+- **Focus** — pomodoro that logs minutes per subject
+- **Papers** — CAIE past-paper index (9701 · 9702 · 9618 · 9709, 2021–2025), direct QP/MS links, done + score, Copy log (Markdown), + Task
+- **More** — exam countdowns, subjects, install, export/import backup
+
+All data lives in `localStorage` on the device.
 
 ## Run
 
