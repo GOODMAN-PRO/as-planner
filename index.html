@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AS Planner</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AS Planner">
+<meta name="theme-color" content="#07070b">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+:root{color-scheme:dark;--bg:#07070b;--card:#101018;--bd:#1f1f2a;--tx:#e7e7ea;--mut:#8b8b96;--acc:#7c3aed;--red:#f87171;--ok:#4ade80;--raise:#1a1a24}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-height:100dvh;padding-top:env(safe-area-inset-top);overflow-wrap:anywhere}
+main{max-width:640px;margin:0 auto;padding:14px 14px calc(88px + env(safe-area-inset-bottom))}
+h1{font-size:1.3rem;letter-spacing:-.01em}
+h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:20px 0 8px;font-weight:600}
+h3{font-size:1.05rem;margin-bottom:4px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.card[data-a]{cursor:pointer}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.mut{color:var(--mut);font-size:.85rem}
+.right{text-align:right;white-space:nowrap}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;min-height:44px}
+.btn{background:var(--acc);color:#fff;border-radius:10px;padding:0 16px;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--raise)}
+.btn.danger{background:#3b0d0d;color:#fca5a5}
+input,select,textarea{font:inherit;color:inherit;background:#0d0d14;border:1px solid var(--bd);border-radius:8px;padding:10px;width:100%;font-size:16px;min-height:44px}
+input[type=color]{padding:2px;height:44px}
+label{display:block;font-size:.8rem;color:var(--mut);margin:12px 0 4px}
+.bar{width:4px;align-self:stretch;border-radius:2px;flex:none;min-height:36px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block;margin-right:5px;vertical-align:middle}
+nav#tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b0b11;border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav#tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;color:var(--mut);padding:8px 0 6px;min-height:56px}
+nav#tabs button.on{color:#c4b5fd}
+nav#tabs button span:first-child{font-size:1.3rem;line-height:1}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{flex:none;padding:0 12px;border-radius:999px;background:var(--raise);color:var(--mut);min-height:44px;font-size:.85rem;text-align:center;line-height:1.15}
+.chip.on{background:var(--acc);color:#fff}
+.chip small{display:block;font-size:.65rem;opacity:.8}
+.chk{width:28px;height:28px;min-height:28px;border-radius:50%;border:2px solid #3a3a48;flex:none;display:grid;place-items:center;font-size:.9rem;padding:14px;box-sizing:content-box;margin:-14px 0 -14px -14px}
+.done .chk{background:var(--ok);border-color:var(--ok);color:#052e16}
+.done .t{text-decoration:line-through;color:var(--mut)}
+.now{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.past{opacity:.5}
+.free{border-style:dashed;background:transparent;color:var(--mut)}
+.empty{text-align:center;color:var(--mut);padding:26px 8px;font-size:.9rem}
+.big{font-size:4rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin:6px 0 2px;line-height:1}
+.mode{text-align:center;color:var(--mut);font-size:.8rem;text-transform:uppercase;letter-spacing:.1em}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:14px;padding:16px;width:min(92vw,420px);margin:auto;max-height:90dvh;overflow:auto}
+dialog::backdrop{background:#000a}
+.days{display:flex;gap:4px}
+.days button{flex:1;border-radius:8px;background:var(--raise);color:var(--mut);font-size:.8rem;min-height:40px}
+.days button.on{background:var(--acc);color:#fff}
+.stat{margin:6px 0}
+.stat i{display:block;height:8px;border-radius:4px;margin-top:3px}
+.overdue{color:var(--red)}
+.tag{font-size:.7rem;padding:2px 6px;border-radius:5px;background:var(--raise);color:var(--mut);white-space:nowrap}
+.tag.now{background:var(--acc);color:#fff;border:0;box-shadow:none}
+details summary{cursor:pointer;color:var(--mut);font-size:.85rem;padding:8px 0;list-style:none}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:#26263a;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;opacity:0;transition:.2s;pointer-events:none;z-index:9;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%)}
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.hd h1{flex:1}
+.num{width:80px}
+.prow{display:flex;align-items:center;gap:4px;padding:3px 0}
+.prow>.mut{width:44px;flex:none;font-size:.72rem}
+.card.pgrid{padding:8px 10px}
+.pcell{flex:none;width:36px;height:36px;min-height:36px;border-radius:8px;background:var(--raise);color:var(--tx);font-size:.8rem;font-variant-numeric:tabular-nums;line-height:1;display:grid;place-items:center;padding:0}
+.pcell.done{background:#14532d;color:#bbf7d0}
+.pcell small{font-size:.55rem;opacity:.85}
+.pcell:focus-visible{outline:2px solid var(--acc)}
+a{color:#c4b5fd}
+button:disabled,input:disabled{opacity:.5;cursor:default}
+[role=button]:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<main id="view"></main>
+<nav id="tabs">
+  <button data-a="tab" data-v="today"><span>☀️</span>Today</button>
+  <button data-a="tab" data-v="week"><span>📅</span>Week</button>
+  <button data-a="tab" data-v="tasks"><span>✅</span>Tasks</button>
+  <button data-a="tab" data-v="focus"><span>⏱️</span>Focus</button>
+  <button data-a="tab" data-v="papers"><span>📄</span>Papers</button>
+  <button data-a="tab" data-v="more"><span>⚙️</span>More</button>
+</nav>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status"></div>
+<script>
+'use strict';
+// ---------- storage ----------
+const KEY = 'as-planner', VER = 1;
+const uid = () => Math.random().toString(36).slice(2, 10);
+function defaults() {
+  return {
+    schema_version: VER,
+    subjects: [
+      { id: 'chem', name: 'Chemistry', color: '#22c55e' },
+      { id: 'phys', name: 'Physics', color: '#3b82f6' },
+      { id: 'cs', name: 'Computer Science', color: '#a855f7' },
+      { id: 'math', name: 'Maths', color: '#f59e0b' },
+    ],
+    // starter study plan (Mon=1 … Sun=0): weekday evenings 16:30 & 19:30, weekend 90-min slots. Edit/delete freely.
+    blocks: [
+      { id: 'st1', title: '', subjectId: 'math', kind: 'study', days: [1, 3], start: '16:30', end: '17:30', place: '' },
+      { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
+      { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
+      { id: 'st4', title: '', subjectId: 'cs', kind: 'study', days: [2, 4], start: '19:30', end: '20:30', place: '' },
+      { id: 'st5', title: '', subjectId: 'cs', kind: 'study', days: [5], start: '16:30', end: '17:30', place: '' },
+      { id: 'st6', title: '', subjectId: 'math', kind: 'study', days: [6], start: '09:00', end: '10:30', place: '' },
+      { id: 'st7', title: '', subjectId: 'chem', kind: 'study', days: [6], start: '10:45', end: '12:15', place: '' },
+      { id: 'st8', title: '', subjectId: 'phys', kind: 'study', days: [6], start: '14:00', end: '15:30', place: '' },
+      { id: 'st9', title: '', subjectId: 'cs', kind: 'study', days: [0], start: '09:00', end: '10:30', place: '' },
+      { id: 'st10', title: '', subjectId: 'phys', kind: 'study', days: [0], start: '10:45', end: '12:15', place: '' },
+      { id: 'st11', title: 'Maths past paper', subjectId: 'math', kind: 'study', days: [0], start: '14:00', end: '15:30', place: '' },
+    ], // {id,title,subjectId,kind,days:[0-6],start:'HH:MM',end:'HH:MM',place}
+    tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
+    exams: [],    // {id,title,subjectId,date}
+    sessions: [], // {date,subjectId,mins}
+    papers: {},   // { '9701_s23_qp_12': {score:78|null, at:'YYYY-MM-DD'} } — presence = done
+    focus: { work: 25, rest: 5 },
+    timer: { mode: 'work', running: false, endAt: null, left: 25 * 60, subjectId: 'chem' },
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return defaults();
+    const d = JSON.parse(raw);
+    if (!d || typeof d !== 'object' || !Array.isArray(d.subjects)) throw new Error('bad shape');
+    // trust boundary: storage/imported backups are sanitised here so a hand-edited or foreign file can't brick render or inject markup
+    const arr = x => Array.isArray(x) ? x : [], str = x => typeof x === 'string';
+    const ID = /^[\w-]{1,40}$/, HM = /^\d{2}:\d{2}$/, YMD = /^\d{4}-\d{2}-\d{2}$/, HEX = /^#[0-9a-f]{6}$/i;
+    const isId = x => str(x) && ID.test(x);
+    const num = (x, dflt, max) => Math.min(max, Math.max(0, Math.round(+x))) || dflt;
+    const D0 = defaults();
+    const subjects = arr(d.subjects).filter(s => s && isId(s.id) && str(s.name)).map(s => ({ id: s.id, name: s.name, color: HEX.test(s.color) ? s.color : '#52525b' }));
+    const sid = x => isId(x) ? x : '';
+    const out = {
+      schema_version: VER,
+      subjects,
+      blocks: arr(d.blocks).filter(b => b && isId(b.id) && Array.isArray(b.days) && HM.test(b.start) && HM.test(b.end))
+        .map(b => ({ id: b.id, title: str(b.title) ? b.title : '', subjectId: sid(b.subjectId), kind: KIND[b.kind] !== undefined ? b.kind : 'other', days: b.days.map(Number).filter(n => n >= 0 && n <= 6), start: b.start, end: b.end, place: str(b.place) ? b.place : '' })),
+      tasks: arr(d.tasks).filter(t => t && isId(t.id) && str(t.title) && YMD.test(t.due))
+        .map(t => ({ id: t.id, title: t.title, subjectId: sid(t.subjectId), due: t.due, mins: num(t.mins, 0, 6000), done: !!t.done, doneAt: str(t.doneAt) ? t.doneAt : null })),
+      exams: arr(d.exams).filter(x => x && isId(x.id) && str(x.title) && YMD.test(x.date)).map(x => ({ id: x.id, title: x.title, subjectId: sid(x.subjectId), date: x.date })),
+      sessions: arr(d.sessions).filter(x => x && YMD.test(x.date)).map(x => ({ date: x.date, subjectId: sid(x.subjectId), mins: num(x.mins, 0, 6000) })),
+      papers: Object.fromEntries(Object.entries(d.papers && typeof d.papers === 'object' ? d.papers : {})
+        .filter(([k, v]) => /^\d{4}_[msw]\d{2}_qp_\d{2}$/.test(k) && v && typeof v === 'object')
+        .map(([k, v]) => [k, { score: Number.isFinite(+v.score) && v.score !== null && v.score !== '' ? Math.min(100, Math.max(0, Math.round(+v.score))) : null, at: YMD.test(v.at) ? v.at : todayISO() }])),
+      focus: { work: num(d.focus?.work, D0.focus.work, 180), rest: num(d.focus?.rest, D0.focus.rest, 60) },
+      timer: { ...D0.timer, ...(d.timer && typeof d.timer === 'object' ? d.timer : {}) },
+    };
+    const T = out.timer;
+    T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
+    T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
+    if (T.running && T.endAt === null) T.running = false;
+    if (!out.subjects.some(s => s.id === T.subjectId)) T.subjectId = out.subjects[0]?.id || '';
+    return out; // ponytail: migration = this normalisation; add per-version steps when VER bumps
+  } catch (e) {
+    console.warn('AS Planner: corrupt data, starting fresh', e);
+    return defaults();
+  }
+}
+let S; // assigned after helpers below (load() uses KIND)
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('Could not save — storage full or blocked'); }
+}
+
+// ---------- helpers ----------
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon-first
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const KIND = { school: 'School', tutor: 'Tutoring', study: 'Study', other: '' };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // local date, no TZ shift
+const todayISO = () => isoOf(new Date());
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (iso, n) => { const d = parseISO(iso); d.setDate(d.getDate() + n); return isoOf(d); };
+const dayDiff = iso => Math.round((parseISO(iso) - parseISO(todayISO())) / 864e5);
+const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const fmtT = m => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+const dur = m => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'm' : ''}` : `${m}m`;
+const niceDate = iso => { const d = parseISO(iso); return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const sub = id => S.subjects.find(s => s.id === id);
+const scol = id => sub(id)?.color || '#52525b';
+const sname = id => sub(id)?.name || '';
+const mondayISO = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoOf(d); };
+function dueLabel(iso) {
+  const n = dayDiff(iso);
+  if (n < 0) return `<span class="overdue">${-n}d overdue</span>`;
+  if (n === 0) return 'Today';
+  if (n === 1) return 'Tomorrow';
+  if (n < 7) return DAYS[parseISO(iso).getDay()];
+  return niceDate(iso);
+}
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m; t.className = 'show';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = '', 2200);
+}
+const subjectOptions = (sel, none = true) =>
+  (none ? `<option value="">— none —</option>` : '') +
+  S.subjects.map(s => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+
+S = load();
+
+// ---------- routing / render ----------
+let view = location.hash.slice(1) || 'today';
+const VIEWS = { today: vToday, week: vWeek, tasks: vTasks, focus: vFocus, papers: vPapers, more: vMore };
+function render() {
+  if (!VIEWS[view]) view = 'today';
+  document.getElementById('view').innerHTML = VIEWS[view]();
+  document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.v === view); b.toggleAttribute('aria-current', b.dataset.v === view); });
+  document.querySelector('.chip.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+window.addEventListener('hashchange', () => { view = location.hash.slice(1) || 'today'; render(); });
+
+// ---------- shared pieces ----------
+function taskRow(t) {
+  return `<div class="card row ${t.done ? 'done' : ''}">
+    <button class="chk" data-a="toggleTask" data-id="${t.id}" aria-label="${t.done ? 'Mark not done' : 'Mark done'}">${t.done ? '✓' : ''}</button>
+    <div class="grow" data-a="editTask" data-id="${t.id}" role="button" tabindex="0" style="cursor:pointer;padding:6px 0">
+      <div class="t">${esc(t.title)}</div>
+      <div class="mut">${t.subjectId ? `<span class="dot" style="background:${scol(t.subjectId)}"></span>${esc(sname(t.subjectId))} · ` : ''}${dueLabel(t.due)}${t.mins ? ` · ${dur(t.mins)}` : ''}</div>
+    </div></div>`;
+}
+function blockRow(b, cur, past) {
+  const label = b.title || sname(b.subjectId) || KIND[b.kind] || 'Block';
+  const meta = [KIND[b.kind], b.subjectId && b.title ? sname(b.subjectId) : '', b.place].filter(Boolean).map(esc).join(' · ');
+  return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}" data-a="editBlock" data-id="${b.id}" role="button" tabindex="0">
+    <span class="bar" style="background:${scol(b.subjectId)}"></span>
+    <div class="grow"><div>${esc(label)} ${cur ? '<span class="tag now">now</span>' : ''}</div>${meta ? `<div class="mut">${meta}</div>` : ''}</div>
+    <div class="mut right">${b.start}<br>${b.end}</div></div>`;
+}
+const byStart = (a, b) => toMin(a.start) - toMin(b.start);
+
+// ---------- Today ----------
+function vToday() {
+  const d = new Date(), dow = d.getDay(), nowM = d.getHours() * 60 + d.getMinutes(), iso = todayISO();
+  const blocks = S.blocks.filter(b => b.days.includes(dow)).sort(byStart);
+  const rows = []; let prevEnd = null;
+  for (const b of blocks) {
+    const s = toMin(b.start), e = toMin(b.end);
+    if (prevEnd !== null && s - prevEnd >= 30) rows.push({ free: true, s: prevEnd, e: s });
+    rows.push({ b, cur: nowM >= s && nowM < e, past: nowM >= e });
+    prevEnd = prevEnd === null ? e : Math.max(prevEnd, e);
+  }
+  const open = S.tasks.filter(t => !t.done).sort((a, b) => a.due.localeCompare(b.due));
+  const soon = open.filter(t => t.due <= addDays(iso, 2));
+  const mins = S.sessions.filter(x => x.date === iso).reduce((a, x) => a + x.mins, 0);
+  const nextExam = S.exams.filter(x => x.date >= iso).sort((a, b) => a.date.localeCompare(b.date))[0];
+  return `<div class="hd"><h1>${DAYS[dow]}, ${d.getDate()} ${MONTHS[d.getMonth()]}</h1><button class="btn ghost" data-a="addTask">+ Task</button></div>
+  <div class="mut">${blocks.length} block${blocks.length === 1 ? '' : 's'} · ${open.length} open task${open.length === 1 ? '' : 's'} · ${dur(mins)} focused${nextExam ? ` · ${esc(nextExam.title)} in ${dayDiff(nextExam.date)}d` : ''}</div>
+  <h2>Schedule</h2>
+  ${rows.length ? rows.map(r => r.free
+    ? `<div class="card row free"><span class="grow">Free · ${dur(r.e - r.s)}</span><span class="right">${fmtT(r.s)}–${fmtT(r.e)}</span></div>`
+    : blockRow(r.b, r.cur, r.past)).join('')
+    : `<div class="empty">Nothing on the timetable today.<br><button class="btn ghost" data-a="addBlock" style="margin-top:10px">Add a block</button></div>`}
+  <h2>Due soon</h2>
+  ${soon.length ? soon.map(taskRow).join('') : `<div class="empty">Nothing due in the next 2 days 🎉</div>`}`;
+}
+
+// ---------- Week ----------
+let wDay = new Date().getDay();
+function vWeek() {
+  const list = S.blocks.filter(b => b.days.includes(wDay)).sort(byStart);
+  const total = list.reduce((a, b) => a + toMin(b.end) - toMin(b.start), 0);
+  return `<div class="hd"><h1>Timetable</h1><button class="btn" data-a="addBlock">+ Add</button></div>
+  <div class="chips">${ORDER.map(dd => { const n = S.blocks.filter(b => b.days.includes(dd)).length;
+    return `<button class="chip ${dd === wDay ? 'on' : ''}" aria-pressed="${dd === wDay}" data-a="wday" data-d="${dd}">${DAYS[dd]}<small>${n ? n + ' block' + (n > 1 ? 's' : '') : '—'}</small></button>`; }).join('')}</div>
+  <h2>${DAYS[wDay]}${total ? ` · ${dur(total)} scheduled` : ''}</h2>
+  ${list.length ? list.map(b => blockRow(b)).join('') : `<div class="empty">No blocks on ${DAYS[wDay]}.<br>Add school lessons, tutoring and study slots — they repeat every week.</div>`}`;
+}
+
+// ---------- Tasks ----------
+let doneOpen = false;
+function vTasks() {
+  const iso = todayISO(), week = addDays(iso, 7);
+  const open = S.tasks.filter(t => !t.done).sort((a, b) => a.due.localeCompare(b.due) || a.title.localeCompare(b.title));
+  const done = S.tasks.filter(t => t.done).sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')).slice(0, 30);
+  const g = (title, arr) => arr.length ? `<h2>${title}</h2>${arr.map(taskRow).join('')}` : '';
+  return `<div class="hd"><h1>Tasks</h1><button class="btn" data-a="addTask">+ Add</button></div>
+  ${open.length ? '' : `<div class="empty">No open tasks. Add homework, past papers, revision…</div>`}
+  ${g('Overdue', open.filter(t => t.due < iso))}
+  ${g('Today', open.filter(t => t.due === iso))}
+  ${g('This week', open.filter(t => t.due > iso && t.due <= week))}
+  ${g('Later', open.filter(t => t.due > week))}
+  ${done.length ? `<details ${doneOpen ? 'open' : ''}><summary>Done (${S.tasks.filter(t => t.done).length}) ▾</summary>${done.map(taskRow).join('')}<button class="btn ghost" data-a="clearDone" style="width:100%">Clear done tasks</button></details>` : ''}`;
+}
+
+// ---------- Focus ----------
+function vFocus() {
+  const T = S.timer, iso = todayISO(), mon = mondayISO();
+  const wk = S.sessions.filter(x => x.date >= mon), today = S.sessions.filter(x => x.date === iso);
+  const per = S.subjects.map(s => ({ s, m: wk.filter(x => x.subjectId === s.id).reduce((a, x) => a + x.mins, 0) }));
+  const max = Math.max(1, ...per.map(p => p.m));
+  const wkTotal = wk.reduce((a, x) => a + x.mins, 0), tdTotal = today.reduce((a, x) => a + x.mins, 0);
+  return `<h1>Focus</h1>
+  <div class="chips" style="margin-top:10px">${S.subjects.map(s => `<button class="chip ${T.subjectId === s.id ? 'on' : ''}" aria-pressed="${T.subjectId === s.id}" data-a="focusSub" data-id="${s.id}" ${T.running ? 'disabled' : ''}>${esc(s.name)}</button>`).join('')}</div>
+  <div class="card" style="margin-top:12px;padding:18px 14px">
+    <div class="mode">${T.mode === 'work' ? (esc(sname(T.subjectId)) || 'Focus') : 'Break'}</div>
+    <div class="big" id="clock">${clockText()}</div>
+    <div class="row" style="justify-content:center;margin-top:10px">
+      <button class="btn" data-a="timerToggle" style="min-width:120px">${T.running ? 'Pause' : (T.left === lenOf(T.mode) * 60 ? 'Start' : 'Resume')}</button>
+      <button class="btn ghost" data-a="timerReset">Reset</button>
+      <button class="btn ghost" data-a="timerSkip" title="Skip to ${T.mode === 'work' ? 'break' : 'focus'}">Skip</button>
+    </div>
+    <div class="row mut" style="justify-content:center;margin-top:12px;gap:14px;flex-wrap:wrap">
+      <label style="margin:0;display:flex;align-items:center;gap:6px">Focus <input class="num" type="number" min="1" max="180" value="${S.focus.work}" data-a="focusLen" data-k="work" ${T.running ? 'disabled' : ''}> min</label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px">Break <input class="num" type="number" min="1" max="60" value="${S.focus.rest}" data-a="focusLen" data-k="rest" ${T.running ? 'disabled' : ''}> min</label>
+    </div>
+  </div>
+  <h2>This week · ${dur(wkTotal)} total · ${dur(tdTotal)} today</h2>
+  <div class="card">${per.map(p => `<div class="stat"><div class="row"><span class="grow"><span class="dot" style="background:${p.s.color}"></span>${esc(p.s.name)}</span><span class="mut">${dur(p.m)}</span></div><i style="width:${Math.max(2, p.m / max * 100)}%;background:${p.s.color}"></i></div>`).join('')}</div>
+  <h2>Recent sessions</h2>
+  ${S.sessions.length ? S.sessions.slice(-8).reverse().map(x => `<div class="card row"><span class="dot" style="background:${scol(x.subjectId)}"></span><span class="grow">${esc(sname(x.subjectId)) || 'Study'}</span><span class="mut">${dur(x.mins)} · ${x.date === iso ? 'today' : niceDate(x.date)}</span></div>`).join('') : `<div class="empty">Finish a focus session and it lands here.</div>`}`;
+}
+const lenOf = mode => mode === 'work' ? S.focus.work : S.focus.rest;
+function clockText() {
+  const T = S.timer, left = T.running ? Math.max(0, Math.round((T.endAt - Date.now()) / 1000)) : T.left;
+  return `${pad(Math.floor(left / 60))}:${pad(left % 60)}`;
+}
+let tickId = null;
+function tick() {
+  const T = S.timer;
+  if (!T.running) return;
+  const left = Math.max(0, Math.round((T.endAt - Date.now()) / 1000));
+  const el = document.getElementById('clock'); if (el) el.textContent = clockText();
+  document.title = `${clockText()} · AS Planner`;
+  if (left <= 0) finishTimer();
+}
+function startTick() { clearInterval(tickId); tickId = setInterval(tick, 500); }
+function stopTick() { clearInterval(tickId); document.title = 'AS Planner'; }
+function finishTimer() {
+  const T = S.timer;
+  if (T.mode === 'work') {
+    // date the session by when it actually ended (phone may have been locked / app closed since)
+    S.sessions.push({ date: isoOf(new Date(T.endAt || Date.now())), subjectId: T.subjectId, mins: S.focus.work });
+    T.mode = 'rest';
+    toast(`Nice — ${S.focus.work}m of ${sname(T.subjectId) || 'study'} logged. Break time.`);
+  } else { T.mode = 'work'; toast('Break over — back to it.'); }
+  T.running = false; T.endAt = null; T.left = lenOf(T.mode) * 60;
+  stopTick(); beep(); save(); render();
+}
+// one AudioContext, created/resumed inside the Start tap so iOS lets it play later
+let ac = null;
+function unlockAudio() { try { ac ||= new (window.AudioContext || window.webkitAudioContext)(); ac.resume().catch(() => {}); } catch {} }
+function beep() {
+  try { navigator.vibrate?.([200, 100, 200]); } catch {}
+  try {
+    unlockAudio();
+    [0, .25, .5].forEach(t => { const o = ac.createOscillator(), g = ac.createGain(); o.connect(g); g.connect(ac.destination); o.frequency.value = 880; g.gain.setValueAtTime(.2, ac.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, ac.currentTime + t + .2); o.start(ac.currentTime + t); o.stop(ac.currentTime + t + .22); });
+  } catch {}
+}
+// reconcile a persisted timer with wall-clock (boot, import, reset)
+function syncTimer() { stopTick(); if (S.timer.running && S.timer.endAt <= Date.now()) finishTimer(); else if (S.timer.running) startTick(); }
+
+// ---------- Papers (CAIE past papers) ----------
+// Index is generated from the real variant pattern verified on PapaCambridge (Aug 2026):
+//  Sciences: P1/P2 variants 1-3 (+4 from 2025); practical June 31-35, Nov 31,33-36 (+37,38 from 2025); March = 12/22/33/42/52
+//  CS 9618: variants 1-3, no March series (Nov 2021 only had 2 variants of P3/P4)
+//  Maths 9709: variants 1-3 (+5 from 2025); March = x2
+const PP_HOST = 'https://pastpapers.papacambridge.com/directories/CAIE/CAIE-pastpapers/upload/';
+const PP_YEARS = [25, 24, 23, 22, 21]; // ponytail: prepend 26 once June-2026 papers are out
+const sciVars = (comp, ser, yy) => ser === 'm' ? [comp === 3 ? 3 : 2]
+  : comp === 3 ? (ser === 's' ? [1, 2, 3, 4, 5] : [1, 3, 4, 5, 6]).concat(yy >= 25 ? [7, 8] : [])
+  : [1, 2, 3].concat(yy >= 25 ? [4] : []);
+const PP = {
+  chem: { code: '9701', name: 'Chemistry', as: [1, 2, 3], vars: sciVars, pmt: 'a-level-chemistry',
+    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'AS structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'A2 structured · 2h · 100 marks', 5: 'Planning, analysis & evaluation · 1h15 · 30 marks' } },
+  phys: { code: '9702', name: 'Physics', as: [1, 2, 3], vars: sciVars, pmt: 'a-level-physics',
+    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'AS structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'A2 structured · 2h · 100 marks', 5: 'Planning, analysis & evaluation · 1h15 · 30 marks' } },
+  cs: { code: '9618', name: 'Computer Science', as: [1, 2], pmt: 'a-level-computer-science',
+    vars: (comp, ser, yy) => ser === 'm' ? [] : (yy === 21 && ser === 'w' && comp >= 3 ? [1, 2] : [1, 2, 3]),
+    comps: { 1: 'Theory fundamentals · 1h30 · 75 marks', 2: 'Fundamental problem-solving & programming · 2h · 75 marks', 3: 'A2 advanced theory · 1h30 · 75 marks', 4: 'A2 practical · 2h30 · 75 marks' } },
+  math: { code: '9709', name: 'Mathematics', as: [1, 2, 4, 5], pmt: 'a-level-maths',
+    vars: (comp, ser, yy) => ser === 'm' ? [2] : [1, 2, 3].concat(yy >= 25 ? [5] : []),
+    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks (AS)', 2: 'Pure Mathematics 2 · 1h15 · 50 marks (AS-only route)', 3: 'Pure Mathematics 3 · 1h50 · 75 marks (A2)', 4: 'Mechanics · 1h15 · 50 marks', 5: 'Probability & Statistics 1 · 1h15 · 50 marks', 6: 'Probability & Statistics 2 · 1h15 · 50 marks (A2)' } },
+};
+const SER = { m: 'Mar', s: 'Jun', w: 'Nov' };
+const ppId = (code, ser, yy, comp, v) => `${code}_${ser}${yy}_qp_${comp}${v}`;
+const ppList = (P, comp) => PP_YEARS.flatMap(yy => ['w', 's', 'm'].flatMap(ser => P.vars(comp, ser, yy).map(v => ({ id: ppId(P.code, ser, yy, comp, v), ser, yy, v }))));
+let pSub = 'chem', ppShowA2 = false;
+function vPapers() {
+  const P = PP[pSub];
+  const chips = `<div class="chips" style="margin-top:10px">${Object.entries(PP).map(([k, p]) => `<button class="chip ${k === pSub ? 'on' : ''}" aria-pressed="${k === pSub}" data-a="pSub" data-id="${k}">${esc(sname(k) || p.name)}<small>${p.code}</small></button>`).join('')}</div>`;
+  const comps = Object.keys(P.comps).map(Number), shown = comps.filter(c => ppShowA2 || P.as.includes(c));
+  const all = shown.flatMap(c => ppList(P, c)), done = all.filter(p => S.papers[p.id]);
+  const scores = done.map(p => S.papers[p.id].score).filter(x => x !== null);
+  const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+  const grid = c => {
+    const rows = {}; for (const p of ppList(P, c)) (rows[p.ser + p.yy] ||= { ser: p.ser, yy: p.yy, cells: [] }).cells.push(p);
+    return Object.values(rows).map(r => `<div class="prow"><span class="mut">${SER[r.ser]} ${r.yy}</span>${r.cells.map(p => { const d = S.papers[p.id];
+      return `<button class="pcell ${d ? 'done' : ''}" data-a="paper" data-id="${p.id}" aria-label="${P.code} ${r.ser}${r.yy} paper ${c}${p.v}${d ? ' done' + (d.score !== null ? ' ' + d.score + '%' : '') : ''}">${c}${p.v}${d && d.score !== null ? `<small>${d.score}</small>` : ''}</button>`; }).join('')}</div>`).join('');
+  };
+  return `<h1>Past papers</h1>${chips}
+  <div class="card row" style="margin-top:12px;flex-wrap:wrap;gap:6px 12px">
+    <span class="grow"><b>${done.length}</b><span class="mut"> / ${all.length} done${avg !== null ? ` · avg ${avg}%` : ''}</span></span>
+    <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'AS only' : 'Show A2 papers'}</button>
+    <button class="btn ghost" data-a="ppCopy" style="min-height:36px;font-size:.85rem">Copy log</button>
+  </div>
+  <div class="mut" style="margin:0 2px 4px">Tap a paper → open QP / mark scheme, record your score. Sources:
+    <a href="https://pastpapers.papacambridge.com/papers/caie/as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}${pSub === 'cs' ? '-for-first-examination-in-2021' : ''}-${P.code}" target="_blank" rel="noopener">PapaCambridge</a> ·
+    <a href="https://www.physicsandmathstutor.com/past-papers/${P.pmt}/" target="_blank" rel="noopener">PMT</a> ·
+    <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}-${P.code}/" target="_blank" rel="noopener">Cambridge official</a></div>
+  ${shown.map(c => `<h2>Paper ${c} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${P.comps[c]}</span></h2><div class="card pgrid">${grid(c) || '<div class="empty">No papers in this series range.</div>'}</div>`).join('')}`;
+}
+function paperDlg(id) {
+  const [code, sy, , cv] = id.split('_'), P = Object.values(PP).find(p => p.code === code), d = S.papers[id];
+  const comp = +cv[0], v = cv.slice(1), qp = PP_HOST + id + '.pdf', ms = PP_HOST + id.replace('_qp_', '_ms_') + '.pdf';
+  dlg.innerHTML = `<h3>${P.name} · ${SER[sy[0]]} 20${sy.slice(1)} · Paper ${comp} v${v}</h3>
+    <div class="mut">${P.comps[comp]} · <span style="font-family:ui-monospace,monospace">${id}</span></div>
+    <div class="row" style="margin-top:12px"><a class="btn ghost grow" style="display:grid;place-items:center;text-decoration:none" href="${qp}" target="_blank" rel="noopener">Question paper</a><a class="btn ghost grow" style="display:grid;place-items:center;text-decoration:none" href="${ms}" target="_blank" rel="noopener">Mark scheme</a></div>
+    <form method="dialog" novalidate>
+      <label for="f-score">Score % (optional)</label><input id="f-score" name="score" type="number" min="0" max="100" inputmode="numeric" value="${d && d.score !== null ? d.score : ''}" placeholder="e.g. 72">
+      <div class="row" style="margin-top:14px">
+        ${d ? '<button type="button" class="btn danger" data-x="clear">Clear</button>' : ''}<span class="grow"></span>
+        <button type="button" class="btn ghost" data-x="cancel">Cancel</button>
+        <button type="submit" class="btn">${d ? 'Update' : 'Mark done'}</button>
+      </div></form>`;
+  const f = dlg.querySelector('form');
+  f.addEventListener('submit', () => { const s = f.score.value.trim(); S.papers[id] = { score: s === '' ? null : Math.min(100, Math.max(0, Math.round(+s))), at: d?.at || todayISO() }; save(); render(); });
+  dlg.querySelector('[data-x=cancel]').onclick = () => dlg.close();
+  dlg.querySelector('[data-x=clear]')?.addEventListener('click', () => { delete S.papers[id]; save(); render(); dlg.close(); });
+  dlg.showModal();
+}
+function papersMarkdown() {
+  const rows = Object.entries(S.papers).sort((a, b) => a[1].at.localeCompare(b[1].at)).map(([id, v]) => {
+    const [code, sy, , cv] = id.split('_'), P = Object.values(PP).find(p => p.code === code);
+    return `| ${v.at} | ${P?.name || code} | ${SER[sy[0]]} 20${sy.slice(1)} P${cv[0]} v${cv.slice(1)} | \`${id}\` | ${v.score === null ? '' : v.score + '%'} |`; });
+  return `| Date | Subject | Paper | Code | Score |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;
+}
+
+// ---------- More ----------
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (view === 'more') render(); });
+function vMore() {
+  const iso = todayISO();
+  const exams = [...S.exams].sort((a, b) => a.date.localeCompare(b.date));
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return `<h1>More</h1>
+  <div class="hd" style="margin-top:14px"><h2 style="margin:0" class="grow">Exams</h2><button class="btn ghost" data-a="addExam">+ Exam</button></div>
+  ${exams.length ? exams.map(x => { const n = dayDiff(x.date); return `<div class="card row" data-a="editExam" data-id="${x.id}"><span class="bar" style="background:${scol(x.subjectId)}"></span><div class="grow"><div>${esc(x.title)}</div><div class="mut">${niceDate(x.date)}</div></div><div class="right"><b style="font-size:1.3rem">${n < 0 ? 'done' : n}</b>${n >= 0 ? `<div class="mut">day${n === 1 ? '' : 's'}</div>` : ''}</div></div>`; }).join('') : `<div class="empty">Add exam dates to get countdowns.</div>`}
+  <div class="hd" style="margin-top:14px"><h2 style="margin:0" class="grow">Subjects</h2><button class="btn ghost" data-a="addSubject">+ Subject</button></div>
+  ${S.subjects.map(s => `<div class="card row" data-a="editSubject" data-id="${s.id}"><span class="dot" style="background:${s.color};width:14px;height:14px"></span><span class="grow">${esc(s.name)}</span><span class="mut">›</span></div>`).join('')}
+  <h2>Install</h2>
+  <div class="card">${standalone ? '<span class="mut">Installed ✓ — running as an app.</span>'
+    : installEvt ? '<button class="btn" data-a="install">Install AS Planner</button>'
+    : ios ? '<span class="mut">iPhone: tap <b>Share</b> → <b>Add to Home Screen</b>, then use the icon (the Home Screen app keeps its own data — export a backup here and import it there if you already added things in Safari; Safari can also wipe unused site data after 7 days).</span>'
+    : '<span class="mut">Install needs <b>https</b> (or localhost): open the hosted address in Chrome/Edge for an install button; on iPhone use Share → Add to Home Screen.</span>'}</div>
+  <h2>Data</h2>
+  <div class="card row" style="flex-wrap:wrap">
+    <button class="btn ghost" data-a="export">Export backup</button>
+    <button class="btn ghost" data-a="import">Import backup</button>
+    <button class="btn danger" data-a="reset">Reset all</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+  <div class="mut" style="text-align:center;margin-top:16px">Everything is stored on this device only. Export a backup now and then.</div>`;
+}
+
+// ---------- dialogs ----------
+const dlg = document.getElementById('dlg');
+function openDlg(html, onSave, onDelete) {
+  dlg.innerHTML = `<form method="dialog" novalidate>${html}
+    <div class="overdue" data-x="err" role="alert" style="font-size:.85rem;margin-top:12px"></div>
+    <div class="row" style="margin-top:8px">
+      ${onDelete ? '<button type="button" class="btn danger" data-x="del">Delete</button>' : ''}
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" data-x="cancel">Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div></form>`;
+  const f = dlg.querySelector('form');
+  // pair each <label> with the control that follows it (screen-reader names)
+  f.querySelectorAll('label').forEach(l => { const c = l.nextElementSibling?.matches('input,select') ? l.nextElementSibling : null; if (c) { c.id ||= 'f-' + c.name; l.htmlFor = c.id; } });
+  f.addEventListener('submit', e => {
+    const data = Object.fromEntries(new FormData(f));
+    data.days = [...f.querySelectorAll('.days .on')].map(b => +b.dataset.d);
+    const err = onSave(data);
+    if (err) { e.preventDefault(); f.querySelector('[data-x=err]').textContent = err; }
+  });
+  f.querySelector('[data-x=cancel]').onclick = () => dlg.close();
+  f.querySelector('[data-x=del]')?.addEventListener('click', () => { if (confirm('Delete this?')) { onDelete(); dlg.close(); } });
+  f.querySelectorAll('.days button').forEach(b => b.onclick = () => b.setAttribute('aria-pressed', b.classList.toggle('on')));
+  dlg.showModal();
+  f.querySelector('input:not([type=time]):not([type=date]):not([type=color])')?.focus();
+}
+function blockDlg(b) {
+  const isNew = !b; b = b || { title: '', subjectId: '', kind: 'school', days: [view === 'week' ? wDay : new Date().getDay()], start: '09:00', end: '10:00', place: '' };
+  openDlg(`<h3>${isNew ? 'Add block' : 'Edit block'}</h3>
+    <label>Title (optional — defaults to subject)</label><input name="title" value="${esc(b.title)}" placeholder="e.g. Chem tutoring">
+    <label>Subject</label><select name="subjectId">${subjectOptions(b.subjectId)}</select>
+    <label>Type</label><select name="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${k === b.kind ? 'selected' : ''}>${v || 'Other'}</option>`).join('')}</select>
+    <label>Repeats on</label><div class="days" role="group" aria-label="Repeats on">${ORDER.map(d => `<button type="button" data-d="${d}" class="${b.days.includes(d) ? 'on' : ''}" aria-pressed="${b.days.includes(d)}">${DAYS[d]}</button>`).join('')}</div>
+    <div class="row"><div class="grow"><label>Start</label><input type="time" name="start" value="${b.start}" required></div><div class="grow"><label>End</label><input type="time" name="end" value="${b.end}" required></div></div>
+    <label>Place / notes</label><input name="place" value="${esc(b.place || '')}" placeholder="Room, Zoom, tutor's name…">`,
+    d => {
+      if (!d.days.length) return 'Pick at least one day';
+      if (!d.start || !d.end) return 'Set start and end time';
+      if (toMin(d.end) <= toMin(d.start)) return 'End must be after start';
+      if (!d.title.trim() && !d.subjectId) return 'Give it a title or a subject';
+      const nb = { id: b.id || uid(), title: d.title.trim(), subjectId: d.subjectId, kind: d.kind, days: d.days, start: d.start, end: d.end, place: d.place.trim() };
+      if (isNew) S.blocks.push(nb); else Object.assign(b, nb);
+      save(); render();
+    },
+    isNew ? null : () => { S.blocks = S.blocks.filter(x => x.id !== b.id); save(); render(); });
+}
+function taskDlg(t) {
+  const isNew = !t; t = t || { title: '', subjectId: '', due: addDays(todayISO(), 1), mins: '' };
+  openDlg(`<h3>${isNew ? 'Add task' : 'Edit task'}</h3>
+    <label>What</label><input name="title" value="${esc(t.title)}" placeholder="e.g. Physics P1 past paper" required>
+    <label>Subject</label><select name="subjectId">${subjectOptions(t.subjectId)}</select>
+    <div class="row"><div class="grow"><label>Due</label><input type="date" name="due" value="${t.due}" required></div><div class="grow"><label>Est. minutes</label><input type="number" name="mins" min="0" step="5" value="${t.mins || ''}" placeholder="30"></div></div>`,
+    d => {
+      if (!d.title.trim()) return 'Give the task a name';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.due)) return 'Pick a due date';
+      const nt = { id: t.id || uid(), title: d.title.trim(), subjectId: d.subjectId, due: d.due, mins: +d.mins || 0, done: !!t.done, doneAt: t.doneAt || null };
+      if (isNew) S.tasks.push(nt); else Object.assign(t, nt);
+      save(); render();
+    },
+    isNew ? null : () => { S.tasks = S.tasks.filter(x => x.id !== t.id); save(); render(); });
+}
+function examDlg(x) {
+  const isNew = !x; x = x || { title: '', subjectId: '', date: '' };
+  openDlg(`<h3>${isNew ? 'Add exam' : 'Edit exam'}</h3>
+    <label>Name</label><input name="title" value="${esc(x.title)}" placeholder="e.g. Chemistry Paper 2" required>
+    <label>Subject</label><select name="subjectId">${subjectOptions(x.subjectId)}</select>
+    <label>Date</label><input type="date" name="date" value="${x.date}" required>`,
+    d => {
+      if (!d.title.trim()) return 'Name the exam';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) return 'Pick a date';
+      const nx = { id: x.id || uid(), title: d.title.trim(), subjectId: d.subjectId, date: d.date };
+      if (isNew) S.exams.push(nx); else Object.assign(x, nx);
+      save(); render();
+    },
+    isNew ? null : () => { S.exams = S.exams.filter(e => e.id !== x.id); save(); render(); });
+}
+function subjectDlg(s) {
+  const isNew = !s; s = s || { name: '', color: '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0') };
+  openDlg(`<h3>${isNew ? 'Add subject' : 'Edit subject'}</h3>
+    <label>Name</label><input name="name" value="${esc(s.name)}" required>
+    <label>Colour</label><input type="color" name="color" value="${s.color}">`,
+    d => {
+      if (!d.name.trim()) return 'Name the subject';
+      const ns = { id: s.id || uid(), name: d.name.trim(), color: d.color };
+      if (isNew) S.subjects.push(ns); else Object.assign(s, ns);
+      save(); render();
+    },
+    isNew ? null : () => {
+      S.subjects = S.subjects.filter(x => x.id !== s.id);
+      if (S.timer.subjectId === s.id) S.timer.subjectId = S.subjects[0]?.id || '';
+      for (const x of [...S.blocks, ...S.tasks, ...S.exams]) if (x.subjectId === s.id) x.subjectId = '';
+      save(); render();
+    });
+}
+
+// ---------- actions ----------
+const A = {
+  tab: el => { location.hash = el.dataset.v; },
+  wday: el => { wDay = +el.dataset.d; render(); },
+  addBlock: () => blockDlg(), editBlock: el => blockDlg(S.blocks.find(b => b.id === el.dataset.id)),
+  addTask: () => taskDlg(), editTask: el => taskDlg(S.tasks.find(t => t.id === el.dataset.id)),
+  addExam: () => examDlg(), editExam: el => examDlg(S.exams.find(x => x.id === el.dataset.id)),
+  addSubject: () => subjectDlg(), editSubject: el => subjectDlg(S.subjects.find(s => s.id === el.dataset.id)),
+  toggleTask: el => { const t = S.tasks.find(t => t.id === el.dataset.id); t.done = !t.done; t.doneAt = t.done ? new Date().toISOString() : null; save(); render(); },
+  clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
+  focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
+  pSub: el => { pSub = el.dataset.id; render(); },
+  ppA2: () => { ppShowA2 = !ppShowA2; render(); },
+  paper: el => paperDlg(el.dataset.id),
+  ppCopy: async () => {
+    const md = papersMarkdown();
+    if (!Object.keys(S.papers).length) return toast('No papers logged yet');
+    try { await navigator.clipboard.writeText(md); toast('Log copied as Markdown'); }
+    catch { prompt('Copy this:', md); }
+  },
+  timerToggle: () => {
+    const T = S.timer;
+    if (T.running) { T.left = Math.max(0, Math.round((T.endAt - Date.now()) / 1000)); T.running = false; T.endAt = null; stopTick(); }
+    else { unlockAudio(); if (T.left <= 0) T.left = lenOf(T.mode) * 60; T.endAt = Date.now() + T.left * 1000; T.running = true; startTick(); }
+    save(); render();
+  },
+  timerReset: () => { const T = S.timer; T.running = false; T.endAt = null; T.left = lenOf(T.mode) * 60; stopTick(); save(); render(); },
+  timerSkip: () => { const T = S.timer; T.mode = T.mode === 'work' ? 'rest' : 'work'; T.running = false; T.endAt = null; T.left = lenOf(T.mode) * 60; stopTick(); save(); render(); },
+  install: async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; render(); },
+  export: () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }));
+    a.download = `as-planner-backup-${todayISO()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  },
+  import: () => document.getElementById('importFile').click(),
+  reset: () => { if (confirm('Delete ALL data on this device? Export a backup first if unsure.')) { localStorage.removeItem(KEY); S = defaults(); syncTimer(); save(); render(); toast('Reset done'); } },
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-a]');
+  if (!el || el.disabled) return;
+  // inputs handle their own change events; skip clicks on them
+  if (el.tagName === 'INPUT' && el.type !== 'file') return;
+  A[el.dataset.a]?.(el);
+});
+// keyboard activation for the tappable rows (role=button divs)
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-a][role=button]')) { e.preventDefault(); e.target.click(); }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.a === 'focusLen') {
+    // update in place (a full render() here would swallow the tap that blurred the input)
+    const v = Math.min(+el.max, Math.max(1, Math.round(+el.value) || lenOf(el.dataset.k)));
+    S.focus[el.dataset.k] = v; el.value = v;
+    if (!S.timer.running && S.timer.mode === el.dataset.k) {
+      S.timer.left = v * 60;
+      const c = document.getElementById('clock'); if (c) c.textContent = clockText();
+      const b = document.querySelector('[data-a=timerToggle]'); if (b) b.textContent = 'Start';
+    }
+    save();
+  }
+  if (el.id === 'importFile' && el.files[0]) {
+    el.files[0].text().then(txt => {
+      const d = JSON.parse(txt);
+      if (!d || !Array.isArray(d.subjects) || !Array.isArray(d.tasks)) throw new Error('not a planner backup');
+      if (!confirm('Replace everything on this device with this backup?')) return;
+      localStorage.setItem(KEY, JSON.stringify(d)); S = load(); syncTimer(); save(); render(); toast('Backup imported');
+    }).catch(err => toast('Import failed: ' + err.message));
+    el.value = '';
+  }
+});
+document.getElementById('view').addEventListener('toggle', e => { if (e.target.tagName === 'DETAILS') doneOpen = e.target.open; }, true);
+// keep "now" marker + due labels fresh
+setInterval(() => { if (view === 'today' && !dlg.open) render(); }, 60000);
+syncTimer(); // resume/finish a timer that was running when the page was closed
+render();
+
+// ---------- offline ----------
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
