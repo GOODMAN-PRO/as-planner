@@ -120,7 +120,7 @@ function defaults() {
       { id: 'math', name: 'Maths', color: '#f59e0b' },
     ],
     blocks: STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })),
-    seeded: 2,
+    seeded: 3,
     tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
     exams: [],    // {id,title,subjectId,date}
     sessions: [], // {date,subjectId,mins}
@@ -135,7 +135,8 @@ const STARTER_PLAN = [
   { id: 'sch2', title: 'Travel home', subjectId: '', kind: 'other', days: [1, 2, 3, 4, 5], start: '15:20', end: '16:00', place: '' },
       { id: 'st1', title: '', subjectId: 'math', kind: 'study', days: [1, 3], start: '16:30', end: '17:30', place: '' },
       { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
-      { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
+      { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [4], start: '16:30', end: '17:30', place: '' },
+  { id: 'tut1', title: 'Physics tutoring', subjectId: 'phys', kind: 'tutor', days: [2], start: '16:30', end: '17:30', place: 'Zoom' },
       { id: 'st4', title: '', subjectId: 'cs', kind: 'study', days: [2, 4], start: '19:30', end: '20:30', place: '' },
       { id: 'st5', title: '', subjectId: 'cs', kind: 'study', days: [5], start: '16:30', end: '17:30', place: '' },
       { id: 'st6', title: '', subjectId: 'math', kind: 'study', days: [6], start: '09:00', end: '10:30', place: '' },
@@ -178,7 +179,11 @@ function load() {
     // migrations of the starter plan (seeded = plan version already applied)
     if (out.seeded < 1 && !out.blocks.length) out.blocks = STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })); // v1: study plan on empty timetables
     if (out.seeded < 2) { const have = new Set(out.blocks.map(b => b.id)); out.blocks.push(...STARTER_PLAN.filter(b => b.id.startsWith('sch') && !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); } // v2: school + travel blocks
-    out.seeded = 2;
+    if (out.seeded < 3) { // v3: Physics tutoring Tue 16:30 replaces the Tue Physics study slot
+      const st3 = out.blocks.find(b => b.id === 'st3'); if (st3 && st3.days.join() === '2,4') st3.days = [4];
+      if (!out.blocks.some(b => b.id === 'tut1')) out.blocks.push({ ...STARTER_PLAN.find(b => b.id === 'tut1'), days: [2] });
+    }
+    out.seeded = 3;
     const T = out.timer;
     T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
     T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
@@ -268,14 +273,15 @@ function taskRow(t) {
 }
 function blockRow(b, cur, past) {
   const label = b.title || sname(b.subjectId) || KIND[b.kind] || 'Block';
-  const meta = [KIND[b.kind] !== label ? KIND[b.kind] : '', b.subjectId && b.title ? sname(b.subjectId) : '', b.place].filter(Boolean).map(esc).join(' · ');
+  const url = /^https?:\/\/\S+$/i.test(b.place || '') ? b.place : '';
+  const meta = [KIND[b.kind] !== label ? KIND[b.kind] : '', b.subjectId && b.title ? sname(b.subjectId) : '', url ? '' : b.place].filter(Boolean).map(esc).join(' · ');
   const pid = paperOf(b);
   return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}">
     <span class="bar" style="background:${scol(b.subjectId)}"></span>
     <div class="grow row" data-a="editBlock" data-id="${b.id}" role="button" tabindex="0" style="cursor:pointer;align-self:stretch">
       <div class="grow"><div>${esc(label)} ${cur ? '<span class="tag now">now</span>' : ''}</div>${meta ? `<div class="mut">${meta}</div>` : ''}</div>
       <div class="mut right">${b.start}<br>${b.end}</div></div>
-    ${pid ? `<a class="btn ghost plink" href="${PP_HOST}${pid}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${pid}">📄</a>` : ''}</div>`;
+    ${url ? `<a class="btn ghost plink" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Join ${esc(label)}">🔗 Join</a>` : ''}${pid ? `<a class="btn ghost plink" href="${PP_HOST}${pid}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${pid}">📄</a>` : ''}</div>`;
 }
 const byStart = (a, b) => toMin(a.start) - toMin(b.start);
 
@@ -561,21 +567,22 @@ function openDlg(html, onSave, onDelete) {
   dlg.showModal();
   f.querySelector('input:not([type=time]):not([type=date]):not([type=color])')?.focus();
 }
-function blockDlg(b) {
+function blockDlg(b, over) {
   const isNew = !b; b = b || { title: '', subjectId: '', kind: 'school', days: [view === 'week' ? wDay : new Date().getDay()], start: '09:00', end: '10:00', place: '' };
+  const v = over ? { ...b, ...over } : b; // v = values shown; b = record saved into
   openDlg(`<h3>${isNew ? 'Add block' : 'Edit block'}</h3>
-    <label>Title (optional — defaults to subject)</label><input name="title" value="${esc(b.title)}" placeholder="e.g. Chem tutoring">
-    <label>Subject</label><select name="subjectId">${subjectOptions(b.subjectId)}</select>
-    <label>Type</label><select name="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${k === b.kind ? 'selected' : ''}>${v || 'Other'}</option>`).join('')}</select>
-    <label>Repeats on</label><div class="days" role="group" aria-label="Repeats on">${ORDER.map(d => `<button type="button" data-d="${d}" class="${b.days.includes(d) ? 'on' : ''}" aria-pressed="${b.days.includes(d)}">${DAYS[d]}</button>`).join('')}</div>
-    <div class="row"><div class="grow"><label>Start</label><input type="time" name="start" value="${b.start}" required></div><div class="grow"><label>End</label><input type="time" name="end" value="${b.end}" required></div></div>
-    <label>Place / notes</label><input name="place" value="${esc(b.place || '')}" placeholder="Room, Zoom, tutor's name…">`,
+    <label>Title (optional — defaults to subject)</label><input name="title" value="${esc(v.title)}" placeholder="e.g. Chem tutoring">
+    <label>Subject</label><select name="subjectId">${subjectOptions(v.subjectId)}</select>
+    <label>Type</label><select name="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${k === v.kind ? 'selected' : ''}>${v || 'Other'}</option>`).join('')}</select>
+    <label>Repeats on</label><div class="days" role="group" aria-label="Repeats on">${ORDER.map(d => `<button type="button" data-d="${d}" class="${v.days.includes(d) ? 'on' : ''}" aria-pressed="${v.days.includes(d)}">${DAYS[d]}</button>`).join('')}</div>
+    <div class="row"><div class="grow"><label>Start</label><input type="time" name="start" value="${v.start}" required></div><div class="grow"><label>End</label><input type="time" name="end" value="${v.end}" required></div></div>
+    <label>Place / notes</label><input name="place" value="${esc(v.place || '')}" placeholder="Room, Zoom, tutor's name…">`,
     d => {
       if (!d.days.length) return 'Pick at least one day';
       if (!d.start || !d.end) return 'Set start and end time';
       if (toMin(d.end) <= toMin(d.start)) return 'End must be after start';
       if (!d.title.trim() && !d.subjectId) return 'Give it a title or a subject';
-      const nb = { id: b.id || uid(), title: d.title.trim(), subjectId: d.subjectId, kind: d.kind, days: d.days, start: d.start, end: d.end, place: d.place.trim() };
+      const nb = { id: b.id || v.id || uid(), title: d.title.trim(), subjectId: d.subjectId, kind: d.kind, days: d.days, start: d.start, end: d.end, place: d.place.trim() };
       if (isNew) S.blocks.push(nb); else Object.assign(b, nb);
       save(); render();
     },
@@ -649,7 +656,7 @@ const A = {
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
-  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 2; save(); render(); toast('Starter plan loaded — edit anything'); },
+  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 3; save(); render(); toast('Starter plan loaded — edit anything'); },
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
@@ -719,6 +726,19 @@ document.getElementById('view').addEventListener('toggle', e => { if (e.target.t
 setInterval(() => { if ((view === 'today' || view === 'week') && !dlg.open) render(); }, 60000);
 syncTimer(); // resume/finish a timer that was running when the page was closed
 render();
+// #add=<json> → open the block dialog prefilled (used to hand personal entries like Zoom links to each device without putting them in the code)
+(function addLink() {
+  const m = /^#add=(.+)$/.exec(location.hash); if (!m) return;
+  history.replaceState(null, '', location.pathname + '#week');
+  let d; try { d = JSON.parse(decodeURIComponent(m[1])); } catch { return toast('Bad add link'); }
+  if (!d || typeof d !== 'object') return;
+  const str = x => typeof x === 'string' ? x : undefined;
+  const over = { title: str(d.title), subjectId: str(d.subjectId), kind: Object.hasOwn(KIND, d.kind) ? d.kind : undefined, days: Array.isArray(d.days) ? d.days.map(Number).filter(x => x >= 0 && x <= 6) : undefined, start: str(d.start), end: str(d.end), place: str(d.place) };
+  for (const k in over) if (over[k] === undefined) delete over[k];
+  const ex = /^[\w-]{1,40}$/.test(d.id) ? S.blocks.find(b => b.id === d.id) : null;
+  view = 'week'; calMode = 'week'; render();
+  if (ex) blockDlg(ex, over); else blockDlg(null, { ...over, id: /^[\w-]{1,40}$/.test(d.id) ? d.id : undefined });
+})();
 
 // ---------- offline ----------
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
