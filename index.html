@@ -453,9 +453,9 @@ const PP = {
   cs: { code: '9618', name: 'Computer Science', as: [1, 2], pmt: 'a-level-computer-science',
     vars: (comp, ser, yy) => ser === 'm' ? [] : (yy === 21 && ser === 'w' && comp >= 3 ? [1, 2] : [1, 2, 3]),
     comps: { 1: 'Theory fundamentals · 1h30 · 75 marks', 2: 'Fundamental problem-solving & programming · 2h · 75 marks', 3: 'A2 advanced theory · 1h30 · 75 marks', 4: 'A2 practical · 2h30 · 75 marks' } },
-  math: { code: '9709', name: 'Mathematics', as: [1, 2, 4, 5], pmt: 'a-level-maths',
+  math: { code: '9709', name: 'Mathematics', as: [1, 2, 3], pmt: 'a-level-maths', // this year: P1/P2/P3 (pure); next year: P4 Mechanics + P5 Stats
     vars: (comp, ser, yy) => ser === 'm' ? [2] : [1, 2, 3].concat(yy >= 25 ? [5] : []),
-    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks (AS)', 2: 'Pure Mathematics 2 · 1h15 · 50 marks (AS-only route)', 3: 'Pure Mathematics 3 · 1h50 · 75 marks (A2)', 4: 'Mechanics · 1h15 · 50 marks', 5: 'Probability & Statistics 1 · 1h15 · 50 marks', 6: 'Probability & Statistics 2 · 1h15 · 50 marks (A2)' } },
+    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks', 2: 'Pure Mathematics 2 · 1h15 · 50 marks (AS-only paper)', 3: 'Pure Mathematics 3 · 1h50 · 75 marks', 4: 'Mechanics · 1h15 · 50 marks (next year)', 5: 'Probability & Statistics 1 · 1h15 · 50 marks (next year)' } },
 };
 const SER = { m: 'Mar', s: 'Jun', w: 'Nov' };
 const ppId = (code, ser, yy, comp, v) => `${code}_${ser}${yy}_qp_${comp}${v}`;
@@ -477,7 +477,7 @@ function vPapers() {
   return `<h1>Past papers</h1>${chips}
   <div class="card row" style="margin-top:12px;flex-wrap:wrap;gap:6px 12px">
     <span class="grow"><b>${done.length}</b><span class="mut"> / ${all.length} done${avg !== null ? ` · avg ${avg}%` : ''}</span></span>
-    <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'AS only' : 'Show A2 papers'}</button>
+    <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'This year only' : 'Show all papers'}</button>
     <button class="btn ghost" data-a="ppCopy" style="min-height:36px;font-size:.85rem">Copy log</button>
   </div>
   <div class="mut" style="margin:0 2px 4px">Tap a paper → open QP / mark scheme, record your score. Sources:
