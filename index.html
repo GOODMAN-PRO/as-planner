@@ -110,7 +110,7 @@ button:disabled,input:disabled{opacity:.5;cursor:default}
 <script>
 'use strict';
 // ---------- storage ----------
-const KEY = 'as-planner', VER = 1;
+const KEY = 'as-planner', VER = 1, APP_VERSION = '2026-08-18.12'; // bump on every deploy (shown in More)
 const uid = () => Math.random().toString(36).slice(2, 10);
 function defaults() {
   return {
@@ -546,7 +546,7 @@ function vMore() {
     <button class="btn danger" data-a="reset">Reset all</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
-  <div class="mut" style="text-align:center;margin-top:16px">Everything is stored on this device only. Export a backup now and then.</div>`;
+  <div class="mut" style="text-align:center;margin-top:16px">Everything is stored on this device only. Export a backup now and then.<br>AS Planner ${APP_VERSION}</div>`;
 }
 
 // ---------- dialogs ----------
@@ -694,6 +694,8 @@ const A = {
   import: () => document.getElementById('importFile').click(),
   reset: () => { if (confirm('Delete ALL data on this device? Export a backup first if unsure.')) { localStorage.removeItem(KEY); S = defaults(); syncTimer(); save(); render(); toast('Reset done'); } },
 };
+// open a URL in a new tab via a real anchor click (works inside the click gesture; window.open gets popup-blocked in some shells)
+function go(url) { const a = Object.assign(document.createElement('a'), { href: url, target: '_blank', rel: 'noopener' }); document.body.appendChild(a); a.click(); a.remove(); }
 // tap = go (data-go: Zoom / paper PDF), hold or right-click = options (the data-a action, e.g. edit / score)
 let lpTimer = null, lpFired = false, swallowUntil = 0, lpX = 0, lpY = 0;
 document.addEventListener('pointerdown', e => {
@@ -709,7 +711,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('a[href]')) return; // real links navigate on their own
   const el = e.target.closest('[data-a]');
   if (!el || el.disabled) return;
-  if (el.dataset.go && el.matches('[data-go]')) { window.open(el.dataset.go, '_blank', 'noopener'); return; }
+  if (el.dataset.go && el.matches('[data-go]')) { go(el.dataset.go); return; }
   // inputs handle their own change events; skip clicks on them
   if (el.tagName === 'INPUT' && el.type !== 'file') return;
   A[el.dataset.a]?.(el);
@@ -761,7 +763,20 @@ render();
 })();
 
 // ---------- offline ----------
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // update check: if the server has a newer build than the one running, put it in the cache and reload once (no more "open it twice")
+  (async () => {
+    try {
+      const r = await fetch('index.html?fresh=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+      const txt = await r.text(), m = /APP_VERSION = '([^']+)'/.exec(txt);
+      if (!m || m[1] === APP_VERSION || sessionStorage.getItem('updated-to') === m[1]) return;
+      for (const k of await caches.keys()) { const c = await caches.open(k); for (const u of ['./', './index.html']) await c.put(new Request(u), new Response(txt, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })); }
+      sessionStorage.setItem('updated-to', m[1]);
+      if (!dlg.open && !S.timer.running) location.reload(); else toast('Update ready — reopen the app to apply');
+    } catch {}
+  })();
+}
 </script>
 </body>
 </html>

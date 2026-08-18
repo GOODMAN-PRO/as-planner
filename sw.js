@@ -1,5 +1,5 @@
 // AS Planner service worker — stale-while-revalidate: serves cache instantly, refreshes in background.
-const CACHE = 'as-planner-v2';
+const CACHE = 'as-planner-v3';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', e => {
@@ -16,7 +16,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  const u = new URL(e.request.url);
+  if (e.request.method !== 'GET' || u.origin !== location.origin || u.searchParams.has('fresh')) return; // ?fresh = the page's own update check, straight to network
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(e.request);
     // no-cache: revalidate with the server rather than the browser's HTTP cache, so edits reach the phone next launch
