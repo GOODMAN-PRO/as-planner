@@ -453,9 +453,9 @@ const PP = {
   cs: { code: '9618', name: 'Computer Science', as: [1, 2], pmt: 'a-level-computer-science',
     vars: (comp, ser, yy) => ser === 'm' ? [] : (yy === 21 && ser === 'w' && comp >= 3 ? [1, 2] : [1, 2, 3]),
     comps: { 1: 'Theory fundamentals · 1h30 · 75 marks', 2: 'Fundamental problem-solving & programming · 2h · 75 marks', 3: 'A2 advanced theory · 1h30 · 75 marks', 4: 'A2 practical · 2h30 · 75 marks' } },
-  math: { code: '9709', name: 'Mathematics', as: [1, 2, 3], pmt: 'a-level-maths', // this year: P1/P2/P3 (pure); next year: P4 Mechanics + P5 Stats
+  math: { code: '9709', name: 'Mathematics', as: [1, 2, 3], pmt: 'a-level-maths', // 2-year A level: pure P1/P2/P3 this year, P4 Mechanics + P5 Stats next year
     vars: (comp, ser, yy) => ser === 'm' ? [2] : [1, 2, 3].concat(yy >= 25 ? [5] : []),
-    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks', 2: 'Pure Mathematics 2 · 1h15 · 50 marks (AS-only paper)', 3: 'Pure Mathematics 3 · 1h50 · 75 marks', 4: 'Mechanics · 1h15 · 50 marks (next year)', 5: 'Probability & Statistics 1 · 1h15 · 50 marks (next year)' } },
+    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks', 2: 'Pure Mathematics 2 · 1h15 · 50 marks', 3: 'Pure Mathematics 3 · 1h50 · 75 marks', 4: 'Mechanics · 1h15 · 50 marks (next year)', 5: 'Probability & Statistics 1 · 1h15 · 50 marks (next year)' } },
 };
 const SER = { m: 'Mar', s: 'Jun', w: 'Nov' };
 const ppId = (code, ser, yy, comp, v) => `${code}_${ser}${yy}_qp_${comp}${v}`;
