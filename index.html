@@ -447,15 +447,15 @@ const sciVars = (comp, ser, yy) => ser === 'm' ? [comp === 3 ? 3 : 2]
   : [1, 2, 3].concat(yy >= 25 ? [4] : []);
 const PP = {
   chem: { code: '9701', name: 'Chemistry', as: [1, 2, 3], vars: sciVars, pmt: 'a-level-chemistry',
-    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'AS structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'A2 structured · 2h · 100 marks', 5: 'Planning, analysis & evaluation · 1h15 · 30 marks' } },
+    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'Structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'Structured (year 2) · 2h · 100 marks', 5: 'Planning, analysis & evaluation (year 2) · 1h15 · 30 marks' } },
   phys: { code: '9702', name: 'Physics', as: [1, 2, 3], vars: sciVars, pmt: 'a-level-physics',
-    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'AS structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'A2 structured · 2h · 100 marks', 5: 'Planning, analysis & evaluation · 1h15 · 30 marks' } },
+    comps: { 1: 'Multiple choice · 1h15 · 40 marks', 2: 'Structured · 1h15 · 60 marks', 3: 'Advanced practical · 2h · 40 marks', 4: 'Structured (year 2) · 2h · 100 marks', 5: 'Planning, analysis & evaluation (year 2) · 1h15 · 30 marks' } },
   cs: { code: '9618', name: 'Computer Science', as: [1, 2], pmt: 'a-level-computer-science',
     vars: (comp, ser, yy) => ser === 'm' ? [] : (yy === 21 && ser === 'w' && comp >= 3 ? [1, 2] : [1, 2, 3]),
-    comps: { 1: 'Theory fundamentals · 1h30 · 75 marks', 2: 'Fundamental problem-solving & programming · 2h · 75 marks', 3: 'A2 advanced theory · 1h30 · 75 marks', 4: 'A2 practical · 2h30 · 75 marks' } },
+    comps: { 1: 'Theory fundamentals · 1h30 · 75 marks', 2: 'Fundamental problem-solving & programming · 2h · 75 marks', 3: 'Advanced theory (year 2) · 1h30 · 75 marks', 4: 'Practical (year 2) · 2h30 · 75 marks' } },
   math: { code: '9709', name: 'Mathematics', as: [1, 2, 3], pmt: 'a-level-maths', // 2-year A level: pure P1/P2/P3 this year, P4 Mechanics + P5 Stats next year
     vars: (comp, ser, yy) => ser === 'm' ? [2] : [1, 2, 3].concat(yy >= 25 ? [5] : []),
-    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks', 2: 'Pure Mathematics 2 · 1h15 · 50 marks', 3: 'Pure Mathematics 3 · 1h50 · 75 marks', 4: 'Mechanics · 1h15 · 50 marks (next year)', 5: 'Probability & Statistics 1 · 1h15 · 50 marks (next year)' } },
+    comps: { 1: 'Pure Mathematics 1 · 1h50 · 75 marks', 2: 'Pure Mathematics 2 · 1h15 · 50 marks', 3: 'Pure Mathematics 3 · 1h50 · 75 marks', 4: 'Mechanics (year 2) · 1h15 · 50 marks', 5: 'Probability & Statistics 1 (year 2) · 1h15 · 50 marks' } },
 };
 const SER = { m: 'Mar', s: 'Jun', w: 'Nov' };
 const ppId = (code, ser, yy, comp, v) => `${code}_${ser}${yy}_qp_${comp}${v}`;
@@ -477,10 +477,10 @@ function vPapers() {
   return `<h1>Past papers</h1>${chips}
   <div class="card row" style="margin-top:12px;flex-wrap:wrap;gap:6px 12px">
     <span class="grow"><b>${done.length}</b><span class="mut"> / ${all.length} done${avg !== null ? ` · avg ${avg}%` : ''}</span></span>
-    <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'This year only' : 'Show all papers'}</button>
+    <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'Year 1 only' : 'Show year-2 papers'}</button>
     <button class="btn ghost" data-a="ppCopy" style="min-height:36px;font-size:.85rem">Copy log</button>
   </div>
-  <div class="mut" style="margin:0 2px 4px">Tap a paper → open QP / mark scheme, record your score. Sources:
+  <div class="mut" style="margin:0 2px 4px">2-year A level: year-1 papers shown by default. Tap a paper → open QP / mark scheme, record your score. Sources:
     <a href="https://pastpapers.papacambridge.com/papers/caie/as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}${pSub === 'cs' ? '-for-first-examination-in-2021' : ''}-${P.code}" target="_blank" rel="noopener">PapaCambridge</a> ·
     <a href="https://www.physicsandmathstutor.com/past-papers/${P.pmt}/" target="_blank" rel="noopener">PMT</a> ·
     <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}-${P.code}/" target="_blank" rel="noopener">Cambridge official</a></div>
