@@ -120,7 +120,7 @@ function defaults() {
       { id: 'math', name: 'Maths', color: '#f59e0b' },
     ],
     blocks: STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })),
-    seeded: 3,
+    seeded: 4,
     tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
     exams: [],    // {id,title,subjectId,date}
     sessions: [], // {date,subjectId,mins}
@@ -135,8 +135,8 @@ const STARTER_PLAN = [
   { id: 'sch2', title: 'Travel home', subjectId: '', kind: 'other', days: [1, 2, 3, 4, 5], start: '15:20', end: '16:00', place: '' },
       { id: 'st1', title: '', subjectId: 'math', kind: 'study', days: [1, 3], start: '16:30', end: '17:30', place: '' },
       { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
-      { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [4], start: '16:30', end: '17:30', place: '' },
-  { id: 'tut1', title: 'Physics tutoring', subjectId: 'phys', kind: 'tutor', days: [2], start: '16:30', end: '17:30', place: 'Zoom' },
+      { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
+  { id: 'tut1', title: 'Maths tutoring', subjectId: 'math', kind: 'tutor', days: [2], start: '18:00', end: '19:00', place: 'Zoom' },
       { id: 'st4', title: '', subjectId: 'cs', kind: 'study', days: [2, 4], start: '19:30', end: '20:30', place: '' },
       { id: 'st5', title: '', subjectId: 'cs', kind: 'study', days: [5], start: '16:30', end: '17:30', place: '' },
       { id: 'st6', title: '', subjectId: 'math', kind: 'study', days: [6], start: '09:00', end: '10:30', place: '' },
@@ -183,7 +183,11 @@ function load() {
       const st3 = out.blocks.find(b => b.id === 'st3'); if (st3 && st3.days.join() === '2,4') st3.days = [4];
       if (!out.blocks.some(b => b.id === 'tut1')) out.blocks.push({ ...STARTER_PLAN.find(b => b.id === 'tut1'), days: [2] });
     }
-    out.seeded = 3;
+    if (out.seeded < 4) { // v4: correction — Tue class is Maths 18:00-19:00, Physics study returns to Tue 16:30
+      const st3 = out.blocks.find(b => b.id === 'st3'); if (st3 && st3.days.join() === '4') st3.days = [2, 4];
+      const t = out.blocks.find(b => b.id === 'tut1'); if (t && t.title === 'Physics tutoring' && t.start === '16:30') Object.assign(t, { title: 'Maths tutoring', subjectId: 'math', start: '18:00', end: '19:00', place: 'Zoom' }); // block changed identity → old link dropped
+    }
+    out.seeded = 4;
     const T = out.timer;
     T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
     T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
@@ -573,7 +577,7 @@ function blockDlg(b, over) {
   openDlg(`<h3>${isNew ? 'Add block' : 'Edit block'}</h3>
     <label>Title (optional — defaults to subject)</label><input name="title" value="${esc(v.title)}" placeholder="e.g. Chem tutoring">
     <label>Subject</label><select name="subjectId">${subjectOptions(v.subjectId)}</select>
-    <label>Type</label><select name="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${k === v.kind ? 'selected' : ''}>${v || 'Other'}</option>`).join('')}</select>
+    <label>Type</label><select name="kind">${Object.entries(KIND).map(([k, lbl]) => `<option value="${k}" ${k === v.kind ? 'selected' : ''}>${lbl || 'Other'}</option>`).join('')}</select>
     <label>Repeats on</label><div class="days" role="group" aria-label="Repeats on">${ORDER.map(d => `<button type="button" data-d="${d}" class="${v.days.includes(d) ? 'on' : ''}" aria-pressed="${v.days.includes(d)}">${DAYS[d]}</button>`).join('')}</div>
     <div class="row"><div class="grow"><label>Start</label><input type="time" name="start" value="${v.start}" required></div><div class="grow"><label>End</label><input type="time" name="end" value="${v.end}" required></div></div>
     <label>Place / notes</label><input name="place" value="${esc(v.place || '')}" placeholder="Room, Zoom, tutor's name…">`,
@@ -656,7 +660,7 @@ const A = {
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
-  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 3; save(); render(); toast('Starter plan loaded — edit anything'); },
+  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 4; save(); render(); toast('Starter plan loaded — edit anything'); },
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
