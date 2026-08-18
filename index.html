@@ -81,6 +81,8 @@ details summary{cursor:pointer;color:var(--mut);font-size:.85rem;padding:8px 0;l
 .cday .dots i.ex{background:var(--red)}
 .cday.sel .dots i{box-shadow:0 0 0 1px #fff6}
 .plink{min-height:40px;padding:0 10px;font-size:.8rem;text-decoration:none;display:grid;place-items:center;flex:none}
+.badge{flex:none;font-size:1.1rem;opacity:.9;padding:0 2px}
+[data-go]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .prow{display:flex;align-items:center;gap:4px;padding:3px 0}
 .prow>.mut{width:44px;flex:none;font-size:.72rem}
 .card.pgrid{padding:8px 10px}
@@ -120,7 +122,7 @@ function defaults() {
       { id: 'math', name: 'Maths', color: '#f59e0b' },
     ],
     blocks: STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })),
-    seeded: 4,
+    seeded: 5,
     tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
     exams: [],    // {id,title,subjectId,date}
     sessions: [], // {date,subjectId,mins}
@@ -129,6 +131,7 @@ function defaults() {
     timer: { mode: 'work', running: false, endAt: null, left: 25 * 60, subjectId: 'chem' },
   };
 }
+const ZOOM_MATH = atob('aHR0cHM6Ly91czA2d2ViLnpvb20udXMvai81NDQxOTE0NDkxP3B3ZD1SREJvWWpSUGRFeHVSMDVDZUdoYU5rcFdLMEZLZHowOQ=='); // Tue maths tutoring meeting (encoded so the public repo isn't a plain-text index of it)
 // starter study plan (Mon=1 … Sun=0): weekday evenings 16:30 & 19:30, weekend 90-min slots. Edit/delete freely.
 const STARTER_PLAN = [
   { id: 'sch1', title: 'School', subjectId: '', kind: 'school', days: [1, 2, 3, 4, 5], start: '07:30', end: '15:20', place: '' },
@@ -136,7 +139,7 @@ const STARTER_PLAN = [
       { id: 'st1', title: '', subjectId: 'math', kind: 'study', days: [1, 3], start: '16:30', end: '17:30', place: '' },
       { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
       { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
-  { id: 'tut1', title: 'Maths tutoring', subjectId: 'math', kind: 'tutor', days: [2], start: '18:00', end: '19:00', place: 'Zoom' },
+  { id: 'tut1', title: 'Maths tutoring', subjectId: 'math', kind: 'tutor', days: [2], start: '18:00', end: '19:00', place: ZOOM_MATH },
       { id: 'st4', title: '', subjectId: 'cs', kind: 'study', days: [2, 4], start: '19:30', end: '20:30', place: '' },
       { id: 'st5', title: '', subjectId: 'cs', kind: 'study', days: [5], start: '16:30', end: '17:30', place: '' },
       { id: 'st6', title: '', subjectId: 'math', kind: 'study', days: [6], start: '09:00', end: '10:30', place: '' },
@@ -187,7 +190,8 @@ function load() {
       const st3 = out.blocks.find(b => b.id === 'st3'); if (st3 && st3.days.join() === '4') st3.days = [2, 4];
       const t = out.blocks.find(b => b.id === 'tut1'); if (t && t.title === 'Physics tutoring' && t.start === '16:30') Object.assign(t, { title: 'Maths tutoring', subjectId: 'math', start: '18:00', end: '19:00', place: 'Zoom' }); // block changed identity → old link dropped
     }
-    out.seeded = 4;
+    if (out.seeded < 5) { const t = out.blocks.find(b => b.id === 'tut1'); if (t && (t.place === 'Zoom' || t.place === '')) t.place = ZOOM_MATH; } // v5: real meeting link
+    out.seeded = 5;
     const T = out.timer;
     T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
     T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
@@ -270,10 +274,10 @@ function taskRow(t) {
   const pid = paperOf(t);
   return `<div class="card row ${t.done ? 'done' : ''}">
     <button class="chk" data-a="toggleTask" data-id="${t.id}" aria-label="${t.done ? 'Mark not done' : 'Mark done'}">${t.done ? '✓' : ''}</button>
-    <div class="grow" data-a="editTask" data-id="${t.id}" role="button" tabindex="0" style="cursor:pointer;padding:6px 0">
+    <div class="grow" data-a="editTask" data-id="${t.id}" ${pid ? `data-go="${PP_HOST}${pid}.pdf"` : ''} role="button" tabindex="0" style="cursor:pointer;padding:6px 0">
       <div class="t">${esc(t.title)}</div>
       <div class="mut">${t.subjectId ? `<span class="dot" style="background:${scol(t.subjectId)}"></span>${esc(sname(t.subjectId))} · ` : ''}${dueLabel(t.due)}${t.mins ? ` · ${dur(t.mins)}` : ''}</div>
-    </div>${pid ? `<a class="btn ghost plink" href="${PP_HOST}${pid}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${pid}">📄 Open</a>` : ''}</div>`;
+    </div>${pid ? `<span class="badge" aria-hidden="true">📄</span>` : ''}</div>`;
 }
 function blockRow(b, cur, past) {
   const label = b.title || sname(b.subjectId) || KIND[b.kind] || 'Block';
@@ -282,10 +286,10 @@ function blockRow(b, cur, past) {
   const pid = paperOf(b);
   return `<div class="card row ${cur ? 'now' : ''} ${past ? 'past' : ''}">
     <span class="bar" style="background:${scol(b.subjectId)}"></span>
-    <div class="grow row" data-a="editBlock" data-id="${b.id}" role="button" tabindex="0" style="cursor:pointer;align-self:stretch">
+    <div class="grow row" data-a="editBlock" data-id="${b.id}" ${url ? `data-go="${esc(url)}"` : pid ? `data-go="${PP_HOST}${pid}.pdf"` : ''} role="button" tabindex="0" style="cursor:pointer;align-self:stretch">
       <div class="grow"><div>${esc(label)} ${cur ? '<span class="tag now">now</span>' : ''}</div>${meta ? `<div class="mut">${meta}</div>` : ''}</div>
       <div class="mut right">${b.start}<br>${b.end}</div></div>
-    ${url ? `<a class="btn ghost plink" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Join ${esc(label)}">🔗 Join</a>` : ''}${pid ? `<a class="btn ghost plink" href="${PP_HOST}${pid}.pdf" target="_blank" rel="noopener" aria-label="Open paper ${pid}">📄</a>` : ''}</div>`;
+    ${url ? `<span class="badge" aria-hidden="true">🔗</span>` : pid ? `<span class="badge" aria-hidden="true">📄</span>` : ''}</div>`;
 }
 const byStart = (a, b) => toMin(a.start) - toMin(b.start);
 
@@ -472,7 +476,7 @@ function vPapers() {
   const grid = c => {
     const rows = {}; for (const p of ppList(P, c)) (rows[p.ser + p.yy] ||= { ser: p.ser, yy: p.yy, cells: [] }).cells.push(p);
     return Object.values(rows).map(r => `<div class="prow"><span class="mut">${SER[r.ser]} ${r.yy}</span>${r.cells.map(p => { const d = S.papers[p.id];
-      return `<button class="pcell ${d ? 'done' : ''}" data-a="paper" data-id="${p.id}" aria-label="${P.code} ${r.ser}${r.yy} paper ${c}${p.v}${d ? ' done' + (d.score !== null ? ' ' + d.score + '%' : '') : ''}">${c}${p.v}${d && d.score !== null ? `<small>${d.score}</small>` : ''}</button>`; }).join('')}</div>`).join('');
+      return `<button class="pcell ${d ? 'done' : ''}" data-a="paper" data-id="${p.id}" data-go="${PP_HOST}${p.id}.pdf" aria-label="${P.code} ${r.ser}${r.yy} paper ${c}${p.v}${d ? ' done' + (d.score !== null ? ' ' + d.score + '%' : '') : ''}">${c}${p.v}${d && d.score !== null ? `<small>${d.score}</small>` : ''}</button>`; }).join('')}</div>`).join('');
   };
   return `<h1>Past papers</h1>${chips}
   <div class="card row" style="margin-top:12px;flex-wrap:wrap;gap:6px 12px">
@@ -480,7 +484,7 @@ function vPapers() {
     <button class="btn ghost" data-a="ppA2" style="min-height:36px;font-size:.85rem">${ppShowA2 ? 'Year 1 only' : 'Show year-2 papers'}</button>
     <button class="btn ghost" data-a="ppCopy" style="min-height:36px;font-size:.85rem">Copy log</button>
   </div>
-  <div class="mut" style="margin:0 2px 4px">2-year A level: year-1 papers shown by default. Tap a paper → open QP / mark scheme, record your score. Sources:
+  <div class="mut" style="margin:0 2px 4px">2-year A level: year-1 papers shown by default. <b>Tap</b> a paper = open the question paper · <b>hold</b> (or right-click) = mark scheme &amp; score. Sources:
     <a href="https://pastpapers.papacambridge.com/papers/caie/as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}${pSub === 'cs' ? '-for-first-examination-in-2021' : ''}-${P.code}" target="_blank" rel="noopener">PapaCambridge</a> ·
     <a href="https://www.physicsandmathstutor.com/past-papers/${P.pmt}/" target="_blank" rel="noopener">PMT</a> ·
     <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-${P.name.toLowerCase().replace(/ /g, '-')}-${P.code}/" target="_blank" rel="noopener">Cambridge official</a></div>
@@ -660,7 +664,7 @@ const A = {
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
-  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 4; save(); render(); toast('Starter plan loaded — edit anything'); },
+  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 5; save(); render(); toast('Starter plan loaded — edit anything'); },
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
@@ -690,10 +694,22 @@ const A = {
   import: () => document.getElementById('importFile').click(),
   reset: () => { if (confirm('Delete ALL data on this device? Export a backup first if unsure.')) { localStorage.removeItem(KEY); S = defaults(); syncTimer(); save(); render(); toast('Reset done'); } },
 };
+// tap = go (data-go: Zoom / paper PDF), hold or right-click = options (the data-a action, e.g. edit / score)
+let lpTimer = null, lpFired = false, swallowUntil = 0, lpX = 0, lpY = 0;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-go]'); if (!el || e.button !== 0) return;
+  lpX = e.clientX; lpY = e.clientY; clearTimeout(lpTimer);
+  lpFired = false; lpTimer = setTimeout(() => { lpFired = true; navigator.vibrate?.(15); A[el.dataset.a]?.(el); }, 500);
+});
+document.addEventListener('pointermove', e => { if (lpTimer && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 12) { clearTimeout(lpTimer); lpTimer = null; } });
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { clearTimeout(lpTimer); lpTimer = null; if (lpFired) { lpFired = false; swallowUntil = Date.now() + 400; } }));
+document.addEventListener('contextmenu', e => { const el = e.target.closest('[data-go]'); if (!el) return; e.preventDefault(); A[el.dataset.a]?.(el); });
 document.addEventListener('click', e => {
-  if (e.target.closest('a[href]')) return; // links (paper PDFs) navigate; don't also trigger the row's action
+  if (Date.now() < swallowUntil) { swallowUntil = 0; e.preventDefault(); return; } // the click that ends a long-press: already handled
+  if (e.target.closest('a[href]')) return; // real links navigate on their own
   const el = e.target.closest('[data-a]');
   if (!el || el.disabled) return;
+  if (el.dataset.go && el.matches('[data-go]')) { window.open(el.dataset.go, '_blank', 'noopener'); return; }
   // inputs handle their own change events; skip clicks on them
   if (el.tagName === 'INPUT' && el.type !== 'file') return;
   A[el.dataset.a]?.(el);
