@@ -110,7 +110,7 @@ button:disabled,input:disabled{opacity:.5;cursor:default}
 <script>
 'use strict';
 // ---------- storage ----------
-const KEY = 'as-planner', VER = 1, APP_VERSION = '2026-08-18.12'; // bump on every deploy (shown in More)
+const KEY = 'as-planner', VER = 1, APP_VERSION = '2026-08-19.1'; // bump on every deploy (shown in More)
 const uid = () => Math.random().toString(36).slice(2, 10);
 function defaults() {
   return {
@@ -122,7 +122,7 @@ function defaults() {
       { id: 'math', name: 'Maths', color: '#f59e0b' },
     ],
     blocks: STARTER_PLAN.map(b => ({ ...b, days: [...b.days] })),
-    seeded: 5,
+    seeded: 6,
     tasks: [],    // {id,title,subjectId,due:'YYYY-MM-DD',mins,done,doneAt}
     exams: [],    // {id,title,subjectId,date}
     sessions: [], // {date,subjectId,mins}
@@ -140,6 +140,7 @@ const STARTER_PLAN = [
       { id: 'st2', title: '', subjectId: 'chem', kind: 'study', days: [1, 3, 5], start: '19:30', end: '20:30', place: '' },
       { id: 'st3', title: '', subjectId: 'phys', kind: 'study', days: [2, 4], start: '16:30', end: '17:30', place: '' },
   { id: 'tut1', title: 'Maths tutoring', subjectId: 'math', kind: 'tutor', days: [2], start: '18:00', end: '19:00', place: ZOOM_MATH },
+  { id: 'tut2', title: 'Chemistry class', subjectId: 'chem', kind: 'tutor', days: [3], start: '17:30', end: '19:00', place: '' },
       { id: 'st4', title: '', subjectId: 'cs', kind: 'study', days: [2, 4], start: '19:30', end: '20:30', place: '' },
       { id: 'st5', title: '', subjectId: 'cs', kind: 'study', days: [5], start: '16:30', end: '17:30', place: '' },
       { id: 'st6', title: '', subjectId: 'math', kind: 'study', days: [6], start: '09:00', end: '10:30', place: '' },
@@ -191,7 +192,8 @@ function load() {
       const t = out.blocks.find(b => b.id === 'tut1'); if (t && t.title === 'Physics tutoring' && t.start === '16:30') Object.assign(t, { title: 'Maths tutoring', subjectId: 'math', start: '18:00', end: '19:00', place: 'Zoom' }); // block changed identity → old link dropped
     }
     if (out.seeded < 5) { const t = out.blocks.find(b => b.id === 'tut1'); if (t && (t.place === 'Zoom' || t.place === '')) t.place = ZOOM_MATH; } // v5: real meeting link
-    out.seeded = 5;
+    if (out.seeded < 6 && !out.blocks.some(b => b.id === 'tut2')) out.blocks.push({ ...STARTER_PLAN.find(b => b.id === 'tut2'), days: [3] }); // v6: Chemistry class Wed
+    out.seeded = 6;
     const T = out.timer;
     T.mode = T.mode === 'rest' ? 'rest' : 'work'; T.running = !!T.running; T.endAt = Number.isFinite(T.endAt) ? T.endAt : null;
     T.left = Number.isFinite(T.left) ? Math.max(0, Math.round(T.left)) : (T.mode === 'work' ? out.focus.work : out.focus.rest) * 60; T.subjectId = sid(T.subjectId);
@@ -664,7 +666,7 @@ const A = {
   clearDone: () => { if (confirm('Remove all done tasks?')) { S.tasks = S.tasks.filter(t => !t.done); save(); render(); } },
   focusSub: el => { if (!S.timer.running) { S.timer.subjectId = el.dataset.id; save(); render(); } },
   pSub: el => { pSub = el.dataset.id; render(); },
-  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 5; save(); render(); toast('Starter plan loaded — edit anything'); },
+  loadPlan: () => { const have = new Set(S.blocks.map(b => b.id)); S.blocks.push(...STARTER_PLAN.filter(b => !have.has(b.id)).map(b => ({ ...b, days: [...b.days] }))); S.seeded = 6; save(); render(); toast('Starter plan loaded — edit anything'); },
   ppA2: () => { ppShowA2 = !ppShowA2; render(); },
   paper: el => paperDlg(el.dataset.id),
   ppCopy: async () => {
